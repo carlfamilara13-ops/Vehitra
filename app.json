@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Vehitra",
+    "slug": "vehitra",
+    "scheme": "vehitra",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "android": {
+      "package": "com.vehitra.app"
+    }
+  }
+}
