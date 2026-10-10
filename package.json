@@ -6,10 +6,13 @@
   "scripts": {
     "start": "expo start",
     "android": "expo start --android",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build:dev": "eas build -p android --profile development",
+    "build:preview": "eas build -p android --profile preview"
   },
   "dependencies": {
     "expo": "~57.0.27",
+    "expo-dev-client": "~57.0.19",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-native": "0.86.3"
