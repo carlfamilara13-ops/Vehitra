@@ -8,7 +8,9 @@
     "android": "expo start --android",
     "typecheck": "tsc --noEmit",
     "build:dev": "eas build -p android --profile development",
-    "build:preview": "eas build -p android --profile preview"
+    "build:preview": "eas build -p android --profile preview",
+    "test:db": "node --test supabase/tests/rls.local.test.mjs",
+    "test:db:cloud": "node --env-file=.env.test --test supabase/tests/rls.cloud.test.mjs"
   },
   "dependencies": {
     "expo": "~57.0.27",
@@ -18,7 +20,9 @@
     "react-native": "0.86.3"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/react": "~19.2.2",
+    "pg": "^8.23.1",
     "typescript": "~6.0.3"
   }
 }

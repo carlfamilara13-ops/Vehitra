@@ -1,4 +1,4 @@
-# Vehitra — Architecture Notes (rev 3)
+# Vehitra — Architecture Notes (rev 4, aligned with the Step 3 migrations)
 
 Labels: **[C]** confirmed requirement · **[R]** recommended decision · **[A]** assumption to verify · **[F]** future
 
@@ -20,41 +20,45 @@ Priority when they disagree: **user-entered actual odometer > GPS-derived distan
 Rule: user records store only what differs from the catalog. [C]
 `userVehicle → model_id → user-specific changes/history`; the catalog supplies the rest.
 
-## 3. Catalog entities [R]
-- `vehicle_types`, `brands`
-- `vehicle_models` (id, brand_id, type_id, name, image_asset_id, catalog_version)
-- `component_definitions` (id, type_id, category, name, allowed_actions[])
-- `model_components` (model_id, component_id, interval_km?, interval_days?, `warn_remaining_pct`, `unknown_history_rule`)
-- `assets` (stored once, referenced by id, cached on device)
+## 3. Catalog entities [R] (see supabase/migrations)
+- `vehicle_types`, `brands`, `assets` (images stored once, referenced by id, cached on device)
+- `component_definitions` (code, name, category, allowed_actions[], applies_to_types[])
+- `vehicle_models` (brand_id?, type_id, slug, name, `is_generic`, sort_order, `current_version`, active). One generic model per vehicle type (brand NULL) for "Can't find your model".
+- `model_versions` (model_id, version, `published`): the version registry. Users only see published versions.
+- `model_components` (model_id, component_id, **version**, interval_km?, interval_days?, `warn_remaining_pct`, `unknown_history_rule`, `inactivity_rule`, **`review_status` draft|reviewed**, reviewed_by, reviewed_at, source_note). PK (model_id, component_id, version).
+
+Versioning rules (enforced by triggers)
+- A user vehicle stores `(model_id, catalog_version)` as a foreign key into `model_versions`: it points at the exact rules it uses, and a referenced version cannot be deleted.
+- Rule values of a published version are frozen. Only the review columns may change on a published row.
+- To change a number: `catalog_begin_version` (copies as draft, unpublished, invisible to users) -> edit -> `catalog_publish_version`. Existing vehicles keep their old version until the user accepts the update.
+- Draft rules are "suggested starting points (unverified)" in the UI, never "recommended". A rule can be `reviewed` only with a named reviewer and date.
 
 `unknown_history_rule` is defined per component, never a global 50%:
 - `{ "type": "remaining_km", "value": 750 }`
 - `{ "type": "percent_used", "value": 40 }`
 
 ## 4. User entities [R]
-- `user_vehicles` (id, user_id, model_id, nickname?, plate?, registration_expiry?, catalog_version_snapshot)
-- `mileage_entries` — append-only ledger:
-  `id, user_vehicle_id, kind (initial | ride | dashboard_reading | adjustment), source (gps | dashboard_reading | manual_adjustment | estimated | initial), ride_id?, gps_distance_m?, suggested_km?, applied_km, odo_reading_after, created_at`
-  - `odo_reading_after`: Vehitra's running odometer value after this entry.
-  - `applied_km`: distance counted toward maintenance (never negative).
+Every user table has `user_id` (RLS) and uses composite foreign keys so a child row can only reference a vehicle/ride/entry of the SAME user.
+- `user_settings` (user_id PK, units, ui_mode, notification_prefs, `raw_retention_days`)
+- `user_vehicles` (id, model_id, catalog_version, custom_label?, nickname?, plate?, model_year?, registration_expiry?, soft delete). A vehicle cannot change model in V1.
+- `mileage_entries` (insert-only ledger): `kind` (initial | ride | dashboard_reading | adjustment | odometer_replacement | void), `source` (gps | dashboard_reading | manual_adjustment | estimated | initial), `ride_id?`, `gps_distance_m?`, `suggested_km?`, `applied_km`, `odo_reading_after` (NULL only on void), `odo_offset_delta`, `flags[]`, `voids_entry_id?`, `client_created_at`.
+  - `applied_km`: distance counted toward maintenance (never negative). Part usage = sum of `applied_km` since install/service.
   - Answers "why does Vehitra think my mileage is 81,566?" by listing entries and their sources.
-- `user_components` (id, user_vehicle_id, component_id, overrides?)
-- `part_installs` (id, user_component_id, brand?, model?, installed_at, install_odo, removed_at?, removal_odo?, notes?)
-  Current part = no `removed_at`. History = rows with `removed_at`. Replace never deletes.
-- `service_events` (id, user_component_id, action, at, odo, `estimated` bool)
-- `deadlines` (id, user_vehicle_id, kind, due_date, reminder_offsets[])
-- `rides` (id, user_vehicle_id, started_at, ended_at, gps_distance_m, applied_km, avg_speed, sync_status)
-- `settings`
+  - There is no `applied_km` on `rides`: the ledger is the single source of truth.
+- `service_events` (insert-only): action (replace | clean | lubricate | inspect | service | baseline | void), `component_id` (catalog component), performed_at, odo_at, `estimated`, `voids_event_id?`. Baselines are always `estimated`.
+- `part_installs`: insert; the open row can be corrected or CLOSED (`removed_at`); closed rows are immutable; no deletes; one open install per component per vehicle. Replacement runs through the atomic, idempotent `replace_part_install` function.
+- `component_overrides` (user_vehicle_id, component_id, interval_km?, interval_days?, enabled). No per-user component rows exist for catalog defaults.
+- `deadlines`, `rides` (summary + encoded polyline; NO raw points), `model_requests`.
 
-Derived, not stored: current odometer, maintenance status, remaining km/days.
-Custom parts/accessories: not in V1; the schema allows user-defined rows later. [C/R]
+Derived, not stored: current odometer, lifetime distance, maintenance status, remaining km/days, component list (from `model_components` at the vehicle's version).
+Custom parts/accessories: not in V1; new tables later, nothing here blocks them. [C/R]
 
 ## 5. Mileage ledger rules [R]
 
 Definitions
 - `E` = running odometer estimate (`odo_reading_after` of the latest non-voided entry). `R` = reading the user enters. `delta = R - E`.
 - `applied_km` = distance counted toward maintenance. Never negative. Part usage = sum of `applied_km` since install/service, so displayed-odometer jumps never corrupt maintenance.
-- `lifetime_km` = `odo_reading + odo_offset`. `odo_offset` changes only on replacement/rollover so total distance stays continuous.
+- `odo_offset` is DERIVED, not stored on the vehicle: it is the sum of `odo_offset_delta` over non-voided entries. `odo_offset_delta` is non-zero only on `odometer_replacement` entries (it equals `E - R` at entry time). `lifetime_km = odo_reading + odo_offset`, so total distance stays continuous across replacements and rollovers. Maintenance uses `applied_km` only and never depends on the offset.
 - Ride example: reading 81,541, GPS 24.6 km applied as 25 km, so E = 81,566 (`kind=ride, source=gps`). Dashboard says 81,580, so entry `kind=dashboard_reading`, `applied_km=14`, `odo_reading_after=81,580`.
 
 Entering a reading
@@ -63,17 +67,18 @@ Entering a reading
 | Same | `delta = 0`: no entry | - | E |
 | Normal catch-up | `0 < delta <= plausible_max` | `delta` | R |
 | Implausibly high | `delta > plausible_max` (default: max(300 km, days since last reading x 1,500 km)). Ask "That is +X km. Is that right?" Save only if confirmed; flag `large_jump`. Protects against typos like 181,580 | `delta` if confirmed | R |
-| Small lower = calibration | `-tol <= delta < 0`, `tol = max(2 km, 3% of km tracked since last reading)`. GPS and dashboard are expected to differ; flag `calibration` | 0 | R |
+| Small lower = calibration | `-tol <= delta < 0`, `tol = max(2 km, 3% of km tracked since last reading)`. GPS and dashboard are expected to differ; flags `reading_lowered` + `calibration` | 0 | R |
 | Larger lower | `delta < -tol`. **Never auto-classified as a typo.** Ask the user: (a) an earlier entry was wrong, (b) odometer was replaced, (c) odometer rolled over, or cancel | see below | see below |
 
 Larger-lower choices
 - **(a) Earlier entry was wrong:** user picks the bad entry; it is voided (see below). The new reading is then re-evaluated as a normal case.
 - **(b) Replaced / (c) Rolled over:** `kind=odometer_replacement` (flag `rollover` for c), `applied_km = 0`, `odo_offset += E - R` (E and R as above), running odo = R. Lifetime distance and maintenance are unchanged.
 - **Cancel:** nothing saved.
+- **Every reading below E carries the `reading_lowered` flag** and appears in a review list. The database also rejects any `dashboard_reading` that adds no distance (`applied_km = 0`) and has no flag.
 
 Voiding (append-only)
 - Entries are never edited or deleted. A correction adds a `void` entry that references the voided entry (`voids_entry_id`).
-- Running values are recomputed by replaying non-voided entries in order. Voiding a ride removes its `applied_km` from part usage.
+- Void entries have no running odometer (`odo_reading_after` is NULL). Running values are recomputed by replaying non-voided entries ordered by (`client_created_at`, `id`). Voiding a ride removes its `applied_km` from part usage.
 - The database forbids UPDATE/DELETE on ledger rows (see SECURITY.md); only inserts are allowed.
 
 Untracked gaps (from Phase 0D): a tracking gap > ~30 s is flagged on the ride. Its straight-line distance is shown as "not tracked" and is not added to `applied_km` unless the user confirms or enters a dashboard reading.
@@ -90,15 +95,18 @@ Untracked gaps (from Phase 0D): a tracking gap > ~30 s is flagged on the ride. I
 Existing vehicles do not automatically change maintenance rules. Each keeps `catalog_version_snapshot`. When a newer version exists, the user is notified ("Vehitra has updated the recommended maintenance interval for your vehicle") and must accept before it applies.
 
 ## 8. Sync [R]
-- UUIDs everywhere; every user table has `updated_at`, `deleted_at`, `sync_status`.
-- Simple fields: last-write-wins by `updated_at`.
-- Ledger, rides, part history, service events: append-only, conflict-free.
-- Local outbox, retried on reconnect, idempotent by UUID.
-- Internet required only for sign-up/login/vehicle download; afterwards the stored session is trusted offline. [C]
+- **Local SQLite is the first write location** for every offline-capable action (rides, ledger entries, service events, installs, overrides, deadlines). No action requires internet.
+- UUIDs are generated on the device. Every cloud write is idempotent by UUID.
+- **Outbox** (local): `id`, `table`, `op` (`insert_ignore` | `update` | `rpc`), `payload`, `created_at`, `attempts`, `next_retry_at`, `last_error`, `status`. Retried with backoff; a row leaves the outbox only after the server confirms.
+- Insert-only tables (`mileage_entries`, `service_events`) are pushed with `INSERT ... ON CONFLICT DO NOTHING`. An upsert that tries to UPDATE is denied by design.
+- Part replacement is pushed as ONE `replace_part_install` call (atomic, safe to retry).
+- Editable tables (vehicles, rides, overrides, deadlines, settings, open installs): last-write-wins on `client_updated_at`; the server's `updated_at` is the pull cursor.
+- Ride summary + polyline sync independently of raw points. Raw points never go to the cloud.
+- Auth requires internet only for sign-up/login/vehicle download; afterwards the stored session is trusted offline. [C]
 
 ## 9. Ride pipeline [C/R]
 Foreground service → GPS points → batched SQLite writes → ride ends → compute distance/avg speed → queue for sync.
-- **Raw local points are never destroyed before the server confirms receipt.** See retention policy below. [R]
+- **Raw local points are never destroyed before the server has confirmed the ride's summary and polyline** (raw points themselves are never uploaded). See retention policy below. [R]
 - No per-second uploads. [C]
 - **Route storage (cloud): [R] simplified polyline + summary stats** (decided in Phase 0D). Raw points stay on device until the server confirms receipt, then ~30 days.
 - Gaps longer than ~30 s are recorded as untracked segments, not silently added to distance. [R]

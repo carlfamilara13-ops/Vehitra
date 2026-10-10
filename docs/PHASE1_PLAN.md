@@ -4,7 +4,7 @@
 |---|---|---|
 | 1 | Repository + documented structure | Repo created from skeleton, typecheck clean, docs committed |
 | 2 | Expo dev + preview build profiles (EAS) | Dev and standalone preview APK both install and open |
-| 3 | Database schemas, RLS, seed catalog | Migrations apply cleanly; two-user RLS tests pass; ~20 popular PH models seeded |
+| 3 | Database schemas, RLS, seed catalog | Migrations apply cleanly; RLS suite passes locally AND on the DEV Supabase project; 14 named models + 7 generic models seeded as DRAFT |
 | 4 | Port the proven GPS module | Ride records offline, survives interruption, syncs; matches PoC behavior |
 | 5 | Real vehicle ride vs physical odometer | See below |
 
