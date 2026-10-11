@@ -39,7 +39,7 @@ It shows our filter agrees with a mature tracker and that the filter removes sta
 
 ## 4. Cleanup before Phase 1
 - Drop the Supabase test tables (`poc_points`, `poc_rides`) and rotate the anon key: the key is inside the APK and the tables allow open anon access.
-- Keep the PoC repo as a reference; port only the tracking module into the real Vehitra repo.
+- (Done) The tracking module was ported into the real Vehitra repo (Phase 1 step 4) and improved there; the PoC repo has been removed.
 
 ## 5. Phase 1 entry
 Gate passed. Next: create the real Vehitra repo (Expo SDK 57, dev + preview EAS profiles), port the tracking module, build the catalog + user schema.

@@ -8,12 +8,11 @@
 | 4 | Port the proven GPS module | Ride records offline, survives interruption, syncs; matches PoC behavior |
 | 5 | Real vehicle ride vs physical odometer | See below |
 
-## Early vehicle test (do not wait for step 4)
-Use the existing PoC build now.
+## Real vehicle test (step 5)
+Use the ported module's `preview` build.
 - Ride 5-10 km on a real vehicle with the phone mounted or in a pocket.
 - Photograph the odometer (and trip meter if present) at start and end.
-- Compare vehicle distance with the app's filtered distance; note raw distance, max gap, and late batches from Share report.
-- Repeat in step 5 with the ported module. A dashboard odometer can itself read a few percent off, so treat the result as a comparison.
+- Compare vehicle distance with the app's filtered distance; note raw distance, max gap, and late batches from Share report. A dashboard odometer can itself read a few percent off, so treat the result as a comparison.
 
 ## Cleanup tasks before real user data
 - Drop `poc_points` and `poc_rides`; remove their policies.

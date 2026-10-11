@@ -19,7 +19,7 @@ The anon key is public by design: it is bundled in every copy of the app. **Row 
 - [x] Insert-only tables reject UPDATE/DELETE from users and from admins; closed installs are immutable.
 - [x] Users cannot write catalog tables or call catalog admin functions; published versions are frozen.
 - [x] Anonymous requests are denied on every table and function.
-- [ ] Run the same suite against the DEV Supabase project (`npm run test:db:cloud`) before real data. The local run uses an emulated Supabase `auth` schema.
+- [x] Run the same suite against the DEV Supabase project (`npm run test:db:cloud`) before real data. The local run uses an emulated Supabase `auth` schema.
 - [ ] No service_role key anywhere in the repo or build config (search before every release).
 
 ## PoC cleanup
