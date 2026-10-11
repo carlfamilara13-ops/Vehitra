@@ -35,5 +35,5 @@ vehitra/
 - TypeScript `strict`. File names: `camelCase.ts`, components `PascalCase.tsx`.
 - IDs are UUIDs. Every user-owned table has `user_id`, `created_at`, `updated_at`, `deleted_at`, `sync_status` (local).
 - Config values (thresholds, retention, map URL) live in `src/config`, never inline.
-- Tests: `domain/` gets unit tests first (ledger, maintenance status, gap rules).
+- Tests: `npm test` runs `*.test.ts` files next to the code with Node's built-in test runner (via `tsx`). `domain/` is tested first. Local-database code is tested on Node's built-in SQLite (`*.testutil.ts`, Node 22.5+); native pieces (GPS task, permissions, screens) are verified on a phone. `npm run test:db` covers the cloud schema.
 - Port from the PoC by module and with review, not by copying the whole project.

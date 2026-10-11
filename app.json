@@ -6,8 +6,27 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "android": {
-      "package": "com.vehitra.app"
+      "package": "com.vehitra.app",
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "ACCESS_BACKGROUND_LOCATION",
+        "FOREGROUND_SERVICE",
+        "FOREGROUND_SERVICE_LOCATION",
+        "POST_NOTIFICATIONS"
+      ]
     },
-    "plugins": ["expo-dev-client"]
+    "plugins": [
+      "expo-dev-client",
+      "expo-sqlite",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Vehitra records your ride route, including while the screen is off.",
+          "isAndroidBackgroundLocationEnabled": true,
+          "isAndroidForegroundServiceEnabled": true
+        }
+      ]
+    ]
   }
 }
