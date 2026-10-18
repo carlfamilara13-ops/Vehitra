@@ -31,9 +31,10 @@ export const POLYLINE = { toleranceM: 5, precision: 5 };
 // Recovery after the app was closed or killed while a ride was recording.
 export const RECOVERY = {
   minInterruptionS: 10, // an unfinished ride with no new point for longer than this at launch counts as interrupted
-  verifyTimeoutMs: 20000, // wait this long for a FRESH fix before restarting tracking / giving up
+  verifyTimeoutMs: 20000, // wait this long for ENOUGH fresh fixes before restarting tracking / giving up
   maxRestartAttempts: 1,
   pollMs: 1000,
+  confirmMinFreshFixes: 3, // distinct fresh fixes that must arrive before recovery is called confirmed (one is not proof)
 };
 
 // Rides at least this long (seconds) with no usable route are flagged for review.

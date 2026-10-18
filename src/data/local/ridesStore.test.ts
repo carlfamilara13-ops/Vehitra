@@ -159,13 +159,24 @@ describe('local ride store (Node SQLite)', { skip: !hasNodeSqlite() && 'node:sql
     await migrate(old, [MIGRATIONS[0]]);
     await old.runAsync(
       `INSERT INTO rides (id, started_at, status, point_count, distance_m, client_updated_at) VALUES ('v1', ?, 'finished', 7, 123, ?)`, T0, T0);
-    assert.equal(await migrate(old, MIGRATIONS), 2);
+    // Scoped to the first two migrations: this test asserts the v1 -> v2 upgrade specifically.
+    assert.equal(await migrate(old, MIGRATIONS.slice(0, 2)), 2);
     const r = await getRide(old, 'v1');
     assert.equal(r?.distance_m, 123);
     assert.equal(r?.interrupted, 0);
     assert.equal(r?.recovery_state, 'none');
     assert.equal(r?.integrity_issue, null);
     assert.equal(r?.route_segments, null);
+  });
+
+  it('createRide persists the provided user_vehicle_id', async () => {
+    await createRide(db, 'linked', T0, 'veh-1');
+    assert.equal((await getRide(db, 'linked'))?.user_vehicle_id, 'veh-1');
+  });
+
+  it('createRide stores NULL when no vehicle id is provided', async () => {
+    await createRide(db, 'unlinked', T0);
+    assert.equal((await getRide(db, 'unlinked'))?.user_vehicle_id, null);
   });
 
   it('REGRESSION: an interruption is persisted, so Stop still saves a recovered ride flagged for review', async () => {
@@ -341,5 +352,88 @@ describe('local ride store (Node SQLite)', { skip: !hasNodeSqlite() && 'node:sql
     await applyBatch(db, line(5, 0, 0), T0 + 21_000);
     assert.equal((await getRide(db, 'a1'))?.point_count, 10);
     assert.ok((await db.getAllAsync<{ type: string }>('SELECT type FROM events')).some((e) => e.type === 'old_fix_dropped'));
+  });
+
+  // ---- Stage 3.2B: vehicle-name snapshot
+
+  it('migration 4 adds vehicle_name and backfills existing rides from the vehicles table', async () => {
+    const old = createNodeSqliteDb();
+    await migrate(old, MIGRATIONS.slice(0, 3)); // v3 already has the vehicles table
+
+    const vehicle = async (id: string, type: string, nickname: string | null, brand: string | null, model: string | null, deletedAt: number | null) =>
+      old.runAsync(
+        `INSERT INTO vehicles (id, vehicle_type, nickname, brand, model, created_at, updated_at, client_updated_at, deleted_at, sync_status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+        id, type, nickname, brand, model, T0, T0, T0, deletedAt,
+      );
+    await vehicle('v-nick', 'car', 'Daily', 'Toyota', 'Vios', null);
+    await vehicle('v-brand', 'car', null, 'Honda', 'Beat', null);
+    await vehicle('v-type', 'bicycle', null, null, null, null);
+    await vehicle('v-del', 'car', 'Old Bike', null, null, T0 + 1); // soft-deleted, row still present
+
+    const ride = async (id: string, vehicleId: string | null) =>
+      old.runAsync(
+        `INSERT INTO rides (id, user_vehicle_id, started_at, status, distance_m, client_updated_at)
+         VALUES (?, ?, ?, 'finished', 10, ?)`,
+        id, vehicleId, T0, T0,
+      );
+    await ride('r-nick', 'v-nick');
+    await ride('r-brand', 'v-brand');
+    await ride('r-type', 'v-type');
+    await ride('r-del', 'v-del');
+    await ride('r-null', null);
+    await ride('r-ghost', 'ghost'); // id points at no vehicle row
+    const latestM = Math.max(...MIGRATIONS.map((m) => m.version));
+    assert.equal(await migrate(old, MIGRATIONS), latestM);
+
+    assert.equal((await getRide(old, 'r-nick'))?.vehicle_name, 'Daily');
+    assert.equal((await getRide(old, 'r-brand'))?.vehicle_name, 'Honda Beat');
+    assert.equal((await getRide(old, 'r-type'))?.vehicle_name, 'Bicycle');
+    // a soft-deleted vehicle still names the historical ride (best effort)
+    assert.equal((await getRide(old, 'r-del'))?.vehicle_name, 'Old Bike');
+    assert.equal((await getRide(old, 'r-null'))?.vehicle_name, null);
+    assert.equal((await getRide(old, 'r-ghost'))?.vehicle_name, null);
+    // existing ride data is untouched
+    assert.equal((await getRide(old, 'r-nick'))?.distance_m, 10);
+  });
+
+  it('migration 4 upgrades a phone that already has rides, leaving their totals intact', async () => {
+    const old = createNodeSqliteDb();
+    await migrate(old, MIGRATIONS.slice(0, 3));
+    await old.runAsync(
+      `INSERT INTO rides (id, started_at, status, point_count, distance_m, client_updated_at)
+       VALUES ('legacy', ?, 'finished', 7, 123, ?)`,
+      T0, T0,
+    );
+    const latestM = Math.max(...MIGRATIONS.map((m) => m.version));
+    assert.equal(await migrate(old, MIGRATIONS), latestM);
+    const r = await getRide(old, 'legacy');
+    assert.equal(r?.distance_m, 123);
+    assert.equal(r?.point_count, 7);
+    assert.equal(r?.vehicle_name, null);
+  });
+
+  it('createRide snapshots the provided vehicle name', async () => {
+    await createRide(db, 'named', T0, 'veh-1', 'Daily');
+    const r = await getRide(db, 'named');
+    assert.equal(r?.user_vehicle_id, 'veh-1');
+    assert.equal(r?.vehicle_name, 'Daily');
+  });
+
+  it('createRide stores a NULL vehicle name when none is provided (Diagnostics / unassigned)', async () => {
+    await createRide(db, 'anon', T0);
+    assert.equal((await getRide(db, 'anon'))?.vehicle_name, null);
+  });
+
+  it('recovery preserves the snapshotted vehicle name and never replaces it', async () => {
+    await createRide(db, 'rec', T0, 'veh-A', 'Daily');
+    await applyBatch(db, line(30, 0, 0), T0 + 30_000);
+    // app killed and reopened; a different vehicle is now the active one
+    await markInterrupted(db, 'rec', 20, T0 + 50_000);
+    await applyBatch(db, line(30, 49, 49 * 1.4), T0 + 80_000);
+    const ride = await finishRide(db, 'rec', 'finished', T0 + 90_000);
+    assert.equal(ride?.status, 'recovered');
+    assert.equal(ride?.user_vehicle_id, 'veh-A');
+    assert.equal(ride?.vehicle_name, 'Daily');
   });
 });

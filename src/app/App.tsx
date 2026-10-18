@@ -1,13 +1,13 @@
 import React from 'react';
 import { StatusBar } from 'expo-status-bar';
-import RideDebugScreen from '../features/rides/RideDebugScreen';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import RootNavigator from './RootNavigator';
 
-// Placeholder shell: shows the ride-tracking dev screen until the real navigation exists.
 export default function App() {
   return (
-    <>
+    <SafeAreaProvider>
       <StatusBar style="light" />
-      <RideDebugScreen />
-    </>
+      <RootNavigator />
+    </SafeAreaProvider>
   );
 }

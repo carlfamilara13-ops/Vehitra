@@ -3,6 +3,7 @@ import { newRideState, processFixes } from '../../domain/ride/processFixes';
 import { buildRoute, singlePolyline } from '../../domain/ride/route';
 import { summarizeRide } from '../../domain/ride/summary';
 import type { DomainEvent, Fix, ProcessConfig, ProcessResult, RideState } from '../../domain/ride/types';
+import { ensureRideMileageRowInTx } from './mileageStore';
 import { serialize } from './serialize';
 import type { Db } from './types';
 
@@ -11,6 +12,7 @@ export type RecoveryState = 'none' | 'verifying' | 'confirmed' | 'failed';
 export type RideRow = {
   id: string;
   user_vehicle_id: string | null;
+  vehicle_name: string | null;
   started_at: number;
   ended_at: number | null;
   status: 'recording' | 'finished' | 'recovered';
@@ -129,7 +131,15 @@ export async function getActiveRideId(db: Db): Promise<string | null> {
 
 // Atomic check-and-create: a second start while a ride is recording is rejected, so two concurrent starts can
 // never leave an orphaned `recording` ride behind.
-export function createRide(db: Db, id: string, startedAt: number, userVehicleId: string | null = null): Promise<void> {
+// `vehicleName` is the name snapshot taken at start; it is stored once and never rewritten, so a later rename or
+// removal of that vehicle cannot change what history shows for this ride.
+export function createRide(
+  db: Db,
+  id: string,
+  startedAt: number,
+  userVehicleId: string | null = null,
+  vehicleName: string | null = null,
+): Promise<void> {
   return serialize(async () => {
     await db.withTransactionAsync(async () => {
       const activeId = await getMeta(db, 'active_ride');
@@ -138,8 +148,9 @@ export function createRide(db: Db, id: string, startedAt: number, userVehicleId:
         if (a && a.status === 'recording') throw new RideAlreadyActiveError(activeId);
       }
       await db.runAsync(
-        `INSERT INTO rides (id, user_vehicle_id, started_at, status, client_updated_at) VALUES (?, ?, ?, 'recording', ?)`,
-        id, userVehicleId, startedAt, startedAt,
+        `INSERT INTO rides (id, user_vehicle_id, vehicle_name, started_at, status, client_updated_at)
+         VALUES (?, ?, ?, ?, 'recording', ?)`,
+        id, userVehicleId, vehicleName, startedAt, startedAt,
       );
       await setMeta(db, 'active_ride', id);
     });
@@ -240,6 +251,20 @@ async function finalizeInTx(
     issues.length > 0 ? issues.join('; ') : null, needsReview, endedAt, rideId,
   );
   if ((await getMeta(db, 'active_ride')) === rideId) await setMeta(db, 'active_ride', null);
+
+  // Applied mileage: one ledger entry per finalized ride, in the SAME transaction as the ride update,
+  // from the persisted distance — never from the odometer or the raw GPS points again. Idempotent by
+  // ride_id, so it is harmless if a caller ever finalizes twice. Rides with no vehicle, or with an
+  // unusable distance, are finalized without an entry (see ensureRideMileageRowInTx).
+  const ledger = await ensureRideMileageRowInTx(
+    db,
+    { id: rideId, user_vehicle_id: row.user_vehicle_id, distance_m: state.distanceM, ended_at: endedAt },
+    endedAt,
+  );
+  if (ledger.created) {
+    events.push({ type: 'ride_ledger_applied', detail: `${rideId} ${ledger.entry.applied_km}km` });
+  }
+
   events.push({ type: 'ride_stop', detail: `${rideId} ${status}` });
   return events;
 }
@@ -255,6 +280,20 @@ export function finishRide(
     let events: DomainEvent[] = [];
     await db.withTransactionAsync(async () => {
       events = await finalizeInTx(db, rideId, status, endedAt, null);
+    });
+    // Repair path. finalizeInTx only writes the ledger on the recording -> finalized transition, so a
+    // ride that was already finalized (e.g. before this hook existed) or a retry after an interrupted
+    // close is finished here. The ensure is idempotent by ride_id, so it is a no-op on the normal path
+    // and can never create a duplicate.
+    await db.withTransactionAsync(async () => {
+      const r = await db.getFirstAsync<RideRow>('SELECT * FROM rides WHERE id = ?', rideId);
+      if (r && r.status !== 'recording') {
+        await ensureRideMileageRowInTx(
+          db,
+          { id: r.id, user_vehicle_id: r.user_vehicle_id, distance_m: r.distance_m, ended_at: r.ended_at },
+          endedAt,
+        );
+      }
     });
     for (const e of events) await logEvent(db, e.type, e.detail, endedAt);
     return db.getFirstAsync<RideRow>('SELECT * FROM rides WHERE id = ?', rideId);
