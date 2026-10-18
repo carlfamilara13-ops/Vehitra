@@ -1,4 +1,4 @@
-import { DATE_ONLY_RE } from '../../domain/reminders/dates';
+import { parseDateOnly } from '../../domain/reminders/dates';
 import {
   DEADLINE_KINDS,
   parseDeadlineOffsets,
@@ -119,7 +119,8 @@ export type DeadlinePull = {
 // schema cannot honestly store (unknown kind, malformed date).
 export function cloudDeadlineToLocal(row: CloudDeadlineRow): DeadlinePull | null {
   if (!(DEADLINE_KINDS as readonly string[]).includes(row.kind)) return null;
-  if (!DATE_ONLY_RE.test(row.due_date)) return null;
+  // Format AND calendar validity (rejects e.g. 2027-02-31), same rule the local store uses.
+  if (parseDateOnly(row.due_date) == null) return null;
   const serverUpdatedAtMs = epochFromIso(row.updated_at);
   if (serverUpdatedAtMs == null) return null;
   const offsets = Array.isArray(row.reminder_offsets_days)

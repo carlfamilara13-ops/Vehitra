@@ -150,7 +150,11 @@ describe('sync engine', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailab
     const report = await runSync(db, fakeRemote(state), { now: T0 });
 
     assert.equal(report.vehicles.pulled, 1);
-    assert.equal(state.pushedVehicles.length, 0);
+    // Only the pre-existing v1 pushes — the pulled row ends the run already synced.
+    assert.deepEqual(
+      state.pushedVehicles.map((r) => r.id),
+      ['v1'],
+    );
     const created = await getVehicle(db, 'v-cloud');
     assert.ok(created);
     assert.equal(created.vehicle_type, 'motorcycle');
@@ -257,7 +261,11 @@ describe('sync engine', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailab
     assert.ok(skip('vehicles', 'no catalog link'), 'unlinked vehicle reported');
     assert.ok(skip('deadlines', 'vehicle not in cloud'), 'unpushable deadline reported');
     assert.ok(skip('deadlines', 'vehicle missing locally'), 'unpullable deadline reported');
-    assert.equal(report.vehicles.pushed, 0);
+    // The linked v1 still pushes; the unlinked v-plain is the only vehicle skipped.
+    assert.deepEqual(
+      state.pushedVehicles.map((r) => r.id),
+      ['v1'],
+    );
     assert.equal(report.deadlines.pushed, 0);
     // Rows stay pending for a future, successful sync — nothing is discarded.
     assert.equal(await statusOf(db, 'v-plain'), 'pending');
