@@ -6,6 +6,7 @@ import {
   formatDateOnly,
   nextOffsetDays,
   parseDateOnly,
+  pickNextReminder,
   reminderFireAt,
   reminderKey,
   REMINDER_OFFSET_CHOICES,
@@ -85,5 +86,40 @@ describe('date-only reminder helpers', () => {
     const earlyMorning = new Date(2026, 9, 18, 0, 1).getTime();
     assert.equal(daysUntilDateOnly('2026-10-19', lateEvening), 1);
     assert.equal(daysUntilDateOnly('2026-10-19', earlyMorning), 1);
+  });
+});
+
+describe('pickNextReminder', () => {
+  const row = (
+    id: string,
+    due_date: string,
+    enabled = 1,
+    deleted_at: number | null = null,
+  ) => ({ id, due_date, enabled, deleted_at });
+
+  it('returns null for an empty list', () => {
+    assert.equal(pickNextReminder([]), null);
+  });
+
+  it('picks the earliest due date among enabled rows (ISO order = calendar order)', () => {
+    const rows = [row('a', '2026-12-31'), row('b', '2026-11-01'), row('c', '2027-06-01')];
+    assert.equal(pickNextReminder(rows)?.id, 'b');
+  });
+
+  it('skips disabled rows', () => {
+    const rows = [row('off', '2026-01-01', 0), row('on', '2026-12-31', 1)];
+    assert.equal(pickNextReminder(rows)?.id, 'on');
+  });
+
+  it('skips soft-deleted rows even when still enabled (cloud tombstone case)', () => {
+    // A deletion pulled from the server sets deleted_at but does not clear the local `enabled`
+    // flag (the Deadlines screen hides it via listDeadlines; this card reads listAllDeadlines).
+    // Without this filter the card would resurrect a reminder nothing schedules or lists.
+    const rows = [row('ghost', '2026-01-01', 1, 1_700_000_000_000), row('live', '2026-12-31')];
+    assert.equal(pickNextReminder(rows)?.id, 'live');
+  });
+
+  it('returns the only row when nothing is filtered out', () => {
+    assert.equal(pickNextReminder([row('only', '2026-05-05')])?.id, 'only');
   });
 });

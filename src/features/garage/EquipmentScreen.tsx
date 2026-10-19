@@ -237,7 +237,7 @@ export default function EquipmentScreen({ navigation, route }: Props) {
   };
 
   return (
-    <Screen title="Equipment" subtitle={vehicleName}>
+    <Screen title="Equipment" subtitle={vehicleName} keyboardShouldPersistTaps="handled">
       {!!error && (
         <View style={s.errorCard}>
           <Text style={s.errorTxt}>{error}</Text>

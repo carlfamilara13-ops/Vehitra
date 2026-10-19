@@ -13,6 +13,8 @@ import VehicleLibraryScreen from '../features/garage/VehicleLibraryScreen';
 import RideDetailScreen from '../features/rides/RideDetailScreen';
 import EquipmentScreen from '../features/garage/EquipmentScreen';
 import DeadlinesScreen from '../features/deadlines/DeadlinesScreen';
+import AccountScreen from '../features/settings/AccountScreen';
+import { PrefsProvider } from './prefs';
 import { colors, typography } from '../ui/theme';
 
 export type RootTabParamList = {
@@ -44,6 +46,8 @@ export type RootTabParamList = {
   Equipment: { vehicleId?: string } | undefined;
   // Expiry/renewal reminders (registration, licence, insurance, inspection, custom).
   Deadlines: undefined;
+  // Email sign-in + manual "Sync now" (v1 cloud sync scope).
+  Account: undefined;
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -71,7 +75,8 @@ const navTheme: Theme = {
 
 export default function RootNavigator() {
   return (
-    <NavigationContainer theme={navTheme}>
+    <PrefsProvider>
+      <NavigationContainer theme={navTheme}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
@@ -94,7 +99,9 @@ export default function RootNavigator() {
         <Tab.Screen name="RideDetail" component={RideDetailScreen} options={hiddenTabOptions} />
         <Tab.Screen name="Equipment" component={EquipmentScreen} options={hiddenTabOptions} />
         <Tab.Screen name="Deadlines" component={DeadlinesScreen} options={hiddenTabOptions} />
+        <Tab.Screen name="Account" component={AccountScreen} options={hiddenTabOptions} />
       </Tab.Navigator>
-    </NavigationContainer>
+      </NavigationContainer>
+    </PrefsProvider>
   );
 }

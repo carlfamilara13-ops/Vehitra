@@ -5,7 +5,8 @@
 export type Units = 'metric' | 'imperial';
 
 const MS_PER_KM = 1000;
-const KM_PER_MILE = 1.609344;
+// Shared conversion factor so display code outside this module converts by the same rule.
+export const KM_PER_MILE = 1.609344;
 
 // At most one decimal, no trailing ".0" — shared by km and mi displays.
 function oneDecimal(value: number): string {

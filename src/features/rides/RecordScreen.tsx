@@ -3,20 +3,22 @@ import { Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import { getDb } from '../../data/local/db';
 import { getActiveRideId, getRide, type RideRow } from '../../data/local/ridesStore';
 import { getActiveVehicle, vehicleDisplayName } from '../../data/local/vehicleStore';
+import { formatDistanceM } from '../../domain/units';
 import Screen from '../../ui/Screen';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { ensurePermissions } from './tracking/permissions';
 import { runStartFlow } from './tracking/startFlow';
 import { resumeIfInterrupted, startRide, stopRide } from './tracking/tracker';
+import { usePrefs } from '../../app/prefs';
 
 type Blocked = { message: string; canAskAgain: boolean };
 
-const km = (m: number) => (m / 1000).toFixed(2);
 const mmss = (s: number) => `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
 
 // User-facing ride recording. Reuses the existing tracking engine; the GPS internals
 // themselves stay untouched and remain inspectable from Settings > Diagnostics.
 export default function RecordScreen() {
+  const prefs = usePrefs();
   const [active, setActive] = useState<RideRow | null>(null);
   const [blocked, setBlocked] = useState<Blocked | null>(null);
   const [warnings, setWarnings] = useState<string[]>([]);
@@ -123,7 +125,7 @@ export default function RecordScreen() {
         {active ? (
           <>
             <Text style={s.statusMeta}>
-              {km(active.distance_m)} km · {active.point_count} points
+              {formatDistanceM(active.distance_m, prefs.units, { decimals: 2 })} — {active.point_count} points
             </Text>
             {active.interrupted === 1 && (
               <Text style={s.statusWarn}>

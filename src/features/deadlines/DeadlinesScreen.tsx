@@ -258,6 +258,7 @@ export default function DeadlinesScreen() {
     <Screen
       title="Reminders"
       subtitle="Expiry dates and notices"
+      keyboardShouldPersistTaps="handled"
       right={
         <TouchableOpacity style={s.addBtn} onPress={startAdd} accessibilityRole="button" accessibilityLabel="Add reminder">
           <Text style={s.addBtnTxt}>+ Add</Text>

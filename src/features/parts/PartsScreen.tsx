@@ -19,10 +19,12 @@ import {
 } from '../../data/local/vehicleStore';
 import { evaluateVehicleMaintenance, type ComponentMaintenance } from '../../data/local/maintenanceQuery';
 import { getComponentDefinition } from '../../domain/maintenance/components';
+import { distanceUnit, KM_PER_MILE } from '../../domain/units';
 import Screen from '../../ui/Screen';
 import Placeholder from '../../ui/Placeholder';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import type { RootTabParamList } from '../../app/RootNavigator';
+import { usePrefs } from '../../app/prefs';
 import ComponentManagePanel from './ComponentManagePanel';
 import {
   categoryLabel,
@@ -59,6 +61,8 @@ const typeLabel = (v: VehicleRow) =>
 // re-reads after each write. Summary counts are deliberately vehicle-wide (over the whole component
 // list) even while the search box filters the cards below, so the overview never changes with search.
 export default function PartsScreen({ navigation }: Props) {
+  const prefs = usePrefs();
+  const units = prefs.units;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [vehicle, setVehicle] = useState<VehicleRow | null>(null);
@@ -216,6 +220,7 @@ function OdometerEditor({
   currentKm: number | null;
   onSaved: () => void;
 }) {
+  const units = usePrefs().units;
   const [raw, setRaw] = useState(currentKm != null ? String(currentKm) : '');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -246,7 +251,10 @@ function OdometerEditor({
   return (
     <View style={s.odo}>
       <Text style={s.muted}>
-        Current odometer: {currentKm != null ? `${formatKm(currentKm)} km` : 'not set'}
+        Current odometer:{' '}
+        {currentKm != null
+          ? `${formatKm(units === 'imperial' ? currentKm / KM_PER_MILE : currentKm)} ${distanceUnit(units)}`
+          : 'not set'}
       </Text>
       <View style={s.odoRow}>
         <TextInput
@@ -256,7 +264,7 @@ function OdometerEditor({
           placeholder="e.g. 12500.5"
           placeholderTextColor={colors.textMuted}
           keyboardType="numeric"
-          accessibilityLabel="Current odometer in kilometres"
+          accessibilityLabel={`Current odometer in ${distanceUnit(units)}`}
         />
         <TouchableOpacity
           style={[s.smallBtn, busy && s.disabled]}
@@ -302,6 +310,7 @@ function ComponentCard({
   onToggle: () => void;
   onSaved: () => void;
 }) {
+  const units = usePrefs().units;
   const { evaluation } = item;
   const tone = STATUS_TONES[evaluation.status];
   const toneColor = TONE_COLORS[tone];
@@ -336,7 +345,9 @@ function ComponentCard({
               style={[s.fill, { width: `${progressFraction(progress.usedPercent) * 100}%`, backgroundColor: toneColor }]}
             />
           </View>
-          <Text style={s.muted}>{usageLine(progress.usedKm, progress.intervalKm, progress.remainingKm)}</Text>
+            <Text style={s.muted}>
+              {usageLine(progress.usedKm, progress.intervalKm, progress.remainingKm, units)}
+            </Text>
           {source && <Text style={s.note}>{source}</Text>}
         </>
       ) : (

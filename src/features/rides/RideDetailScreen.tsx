@@ -9,7 +9,7 @@ import { getAppSettings, type UnitsPref } from '../../data/local/settingsStore';
 import { decodePolyline, type LatLon } from '../../domain/ride/polyline';
 import { projectRoute, type SketchedPoint } from '../../domain/ride/sketch';
 import type { Route } from '../../domain/ride/route';
-import { formatDistanceM, formatSpeedMs, speedUnit } from '../../domain/units';
+import { formatDistanceM, formatSpeedMs, speedUnit, KM_PER_MILE } from '../../domain/units';
 import Screen from '../../ui/Screen';
 import Placeholder from '../../ui/Placeholder';
 import { colors, radii, spacing, typography } from '../../ui/theme';
@@ -107,10 +107,17 @@ export default function RideDetailScreen({ navigation, route }: Props) {
   const subtitle = ride ? new Date(ride.started_at).toLocaleTimeString() : 'Loading…';
   const speedLabel = speedUnit(units);
 
-  // Dial scale: round up past the fastest reading so the needle never pins, with a sane floor.
-  const maxSpeedKmh = ride && ride.max_speed_ms > 0 ? ride.max_speed_ms * 3.6 : 0;
-  const dialMax = Math.max(60, Math.ceil((maxSpeedKmh + 10) / 20) * 20);
-  const avgKmh = ride?.avg_speed_ms != null ? ride.avg_speed_ms * 3.6 : 0;
+  // Dial scale in the display unit, so the arc numerals, the needle ratio and the unit label
+  // always agree (an imperial dial reads mph end to end). Round up past the fastest reading
+  // so the needle never pins, with a sane floor and step per unit.
+  const toDisplay = (kmh: number) => (units === 'imperial' ? kmh / KM_PER_MILE : kmh);
+  const step = units === 'imperial' ? 10 : 20;
+  const floor = units === 'imperial' ? 40 : 60;
+  const margin = units === 'imperial' ? 5 : 10;
+  const maxSpeedDisplay =
+    ride && ride.max_speed_ms > 0 ? toDisplay(ride.max_speed_ms * 3.6) : 0;
+  const dialMax = Math.max(floor, Math.ceil((maxSpeedDisplay + margin) / step) * step);
+  const avgDisplay = ride?.avg_speed_ms != null ? toDisplay(ride.avg_speed_ms * 3.6) : 0;
 
   return (
     <Screen title={title} subtitle={subtitle}>
@@ -135,8 +142,8 @@ export default function RideDetailScreen({ navigation, route }: Props) {
           <View style={s.card}>
             <Text style={s.cardTitle}>Speed</Text>
             <SpeedDial
-              valueKmh={avgKmh}
-              maxKmh={dialMax}
+              value={avgDisplay}
+              max={dialMax}
               maxLabel={`${Math.round(dialMax)}`}
               valueLabel={formatSpeedMs(ride.avg_speed_ms, units)}
               subLabel={`Max ${formatSpeedMs(ride.max_speed_ms, units)}`}
@@ -233,17 +240,18 @@ function Metric({ value, label }: { value: string; label: string }) {
   );
 }
 
-// Half-circle dial drawn with SVG. Value and max are both in km/h; the unit label is text only.
+ // Half-circle dial drawn with SVG. Value and max arrive in the rider's display unit (km/h or
+ // mph); the unit label below matches the caller's label, not a hard-coded string.
 function SpeedDial({
-  valueKmh,
-  maxKmh,
+  value,
+  max,
   valueLabel,
   subLabel,
   maxLabel,
   speedLabel,
 }: {
-  valueKmh: number;
-  maxKmh: number;
+  value: number;
+  max: number;
   valueLabel: string;
   subLabel: string;
   maxLabel: string;
@@ -255,7 +263,7 @@ function SpeedDial({
   const cy = height - 16;
   const r = 96;
 
-  const fraction = maxKmh > 0 ? Math.min(Math.max(valueKmh / maxKmh, 0), 1) : 0;
+  const fraction = max > 0 ? Math.min(Math.max(value / max, 0), 1) : 0;
   const startDeg = 180;
   const endDeg = 360;
   const valueDeg = startDeg + fraction * 180;

@@ -11,6 +11,8 @@ import {
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import * as Crypto from 'expo-crypto';
 import { getDb } from '../../data/local/db';
+import { odometerInputLabel } from '../../domain/units';
+import { usePrefs } from '../../app/prefs';
 import {
   createVehicle,
   getVehicle,
@@ -39,6 +41,7 @@ const numOrNull = (raw: string): number | null => {
 // Add or edit one vehicle. Only the type is required; everything else can stay blank for a
 // generic/custom vehicle. Saves to the local store; the first vehicle added becomes active.
 export default function VehicleFormScreen({ route, navigation }: Props) {
+  const prefs = usePrefs();
   const editId = route.params?.id;
   const isEdit = !!editId;
   // Chosen through the vehicle library: preserved for the whole session even if the user backs
@@ -187,14 +190,18 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
 
   if (!loadDone) {
     return (
-      <Screen title="Edit vehicle" scroll={false}>
+      <Screen title="Edit vehicle" scroll={false} keyboardShouldPersistTaps="handled">
         <ActivityIndicator color={colors.primary} style={s.loading} />
       </Screen>
     );
   }
 
   return (
-    <Screen title={editId ? 'Edit vehicle' : 'Add vehicle'} subtitle="Stored on this device — works offline">
+    <Screen
+      title={editId ? 'Edit vehicle' : 'Add vehicle'}
+      subtitle="Stored on this device — works offline"
+      keyboardShouldPersistTaps="handled"
+    >
       <Text style={s.label}>Vehicle type</Text>
       <View style={s.chips}>
         {VEHICLE_TYPES.map((t) => {
@@ -234,7 +241,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
         maxLength={20}
       />
       <Field
-        label="Odometer (km)"
+        label={odometerInputLabel(prefs.units)}
         value={odometer}
         onChangeText={setOdometer}
         placeholder="Optional"

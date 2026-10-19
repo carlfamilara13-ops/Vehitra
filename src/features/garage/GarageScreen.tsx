@@ -15,23 +15,26 @@ import Screen from '../../ui/Screen';
 import Placeholder from '../../ui/Placeholder';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import type { RootTabParamList } from '../../app/RootNavigator';
+import { formatDistanceKm, type Units } from '../../domain/units';
+import { usePrefs } from '../../app/prefs';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'Garage'>;
 
 const typeLabel = (v: VehicleRow) => (VEHICLE_TYPE_LABELS as Record<string, string>)[v.vehicle_type] ?? v.vehicle_type;
 
-const detail = (v: VehicleRow) =>
+const detail = (v: VehicleRow, units: Units) =>
   [
     typeLabel(v),
     v.model_year ? String(v.model_year) : null,
     v.plate,
-    v.odometer_km != null ? `${v.odometer_km} km` : null,
+    v.odometer_km != null ? formatDistanceKm(v.odometer_km, units) : null,
   ]
     .filter(Boolean)
     .join(' · ');
 
 // Vehicle list. Local-only: reads and writes the on-device store, no catalog or network.
 export default function GarageScreen({ navigation }: Props) {
+  const prefs = usePrefs();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [vehicles, setVehicles] = useState<VehicleRow[]>([]);
@@ -107,7 +110,7 @@ export default function GarageScreen({ navigation }: Props) {
                 <View style={s.cardHead}>
                   <View style={s.cardText}>
                     <Text style={s.cardTitle}>{vehicleDisplayName(v)}</Text>
-                    <Text style={s.muted}>{detail(v)}</Text>
+                    <Text style={s.muted}>{detail(v, prefs.units)}</Text>
                   </View>
                   {v.id === activeId && (
                     <View style={s.badge}>

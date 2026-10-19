@@ -1,4 +1,4 @@
-import { getDeadline, listAllDeadlines, upsertDeadline } from '../local/deadlineStore';
+import { listAllDeadlines, upsertDeadline } from '../local/deadlineStore';
 import type { Db } from '../local/types';
 import {
   createVehicle,

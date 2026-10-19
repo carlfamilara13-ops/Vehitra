@@ -2,6 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from './theme';
+import { usePrefs } from '../app/prefs';
 
 type Props = {
   title: string;
@@ -17,12 +18,15 @@ type Props = {
 
 // Common screen frame: safe-area aware, dark background and a consistent header.
 export default function Screen({ title, subtitle, right, scroll = true, children, contentStyle, keyboardShouldPersistTaps }: Props) {
+  // Easy mode enlarges the shared frame text on every screen (the Dashboard adds its own
+  // metric sizing on top). Read from prefs here so no screen has to remember to opt in.
+  const easy = usePrefs().uiMode === 'easy';
   const inner = (
     <>
       <View style={s.header}>
         <View style={s.headerText}>
-          <Text style={typography.title}>{title}</Text>
-          {!!subtitle && <Text style={s.subtitle}>{subtitle}</Text>}
+          <Text style={[typography.title, easy && s.easyTitle]}>{title}</Text>
+          {!!subtitle && <Text style={[s.subtitle, easy && s.easySubtitle]}>{subtitle}</Text>}
         </View>
         {right}
       </View>
@@ -59,4 +63,6 @@ const s = StyleSheet.create({
   },
   headerText: { flex: 1 },
   subtitle: { ...typography.caption, marginTop: spacing.xs },
+  easyTitle: { fontSize: 28 },
+  easySubtitle: { fontSize: 14 },
 });

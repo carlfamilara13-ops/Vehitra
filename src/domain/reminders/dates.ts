@@ -69,3 +69,18 @@ export function reminderFireAt(dueDate: string, offsetDays: number): number | nu
 export function reminderKey(kind: string, subjectId: string | null, fireDate: string): string {
   return `${kind}:${subjectId ?? '-'}:${fireDate}`;
 }
+
+// The nearest reminder a user should still see: enabled AND not soft-deleted, earliest due
+// date first (ISO 'YYYY-MM-DD' compares lexicographically). Shared by any screen that reads
+// listAllDeadlines (which deliberately includes disabled and deleted rows for sync), so the
+// UI applies the same visibility rule as the Deadlines screen and the scheduler.
+export function pickNextReminder<
+  T extends { due_date: string; enabled: number; deleted_at: number | null },
+>(rows: readonly T[]): T | null {
+  let best: T | null = null;
+  for (const r of rows) {
+    if (r.enabled !== 1 || r.deleted_at != null) continue;
+    if (!best || r.due_date < best.due_date) best = r;
+  }
+  return best;
+}

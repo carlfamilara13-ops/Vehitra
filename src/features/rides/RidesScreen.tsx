@@ -4,14 +4,14 @@ import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { getDb } from '../../data/local/db';
 import { listRides, type RideRow } from '../../data/local/ridesStore';
+import { formatDistanceM, formatSpeedMs } from '../../domain/units';
 import Screen from '../../ui/Screen';
 import Placeholder from '../../ui/Placeholder';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import type { RootTabParamList } from '../../app/RootNavigator';
+import { usePrefs } from '../../app/prefs';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'Rides'>;
-
-const km = (m: number) => (m / 1000).toFixed(2);
 
 function duration(s: number | null): string {
   if (s == null) return '—';
@@ -30,6 +30,7 @@ const statusLabel: Record<RideRow['status'], string> = {
 // Read-only list of locally stored rides. Refreshes whenever the tab gains focus. Tapping a
 // card opens the ride detail (stats, route sketch, speed dial).
 export default function RidesScreen({ navigation }: Props) {
+  const prefs = usePrefs();
   const [rides, setRides] = useState<RideRow[]>([]);
   const [loaded, setLoaded] = useState(false);
 
@@ -70,12 +71,12 @@ export default function RidesScreen({ navigation }: Props) {
             </View>
             <Text style={s.vehicle}>{r.vehicle_name ?? 'No vehicle'}</Text>
             <View style={s.metrics}>
-            <Metric value={`${km(r.distance_m)} km`} label="Distance" />
-            <Metric value={duration(r.duration_s ?? r.tracked_s)} label="Duration" />
             <Metric
-              value={r.avg_speed_ms != null ? `${(r.avg_speed_ms * 3.6).toFixed(1)} km/h` : '—'}
-              label="Avg speed"
+              value={formatDistanceM(r.distance_m, prefs.units, { decimals: 2 })}
+              label="Distance"
             />
+            <Metric value={duration(r.duration_s ?? r.tracked_s)} label="Duration" />
+            <Metric value={formatSpeedMs(r.avg_speed_ms, prefs.units)} label="Avg speed" />
           </View>
           {(r.needs_review === 1 || r.integrity_issue) && (
             <Text style={s.review}>Needs review{r.integrity_issue ? ` · ${r.integrity_issue}` : ''}</Text>

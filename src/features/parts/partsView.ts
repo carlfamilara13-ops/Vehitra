@@ -6,6 +6,7 @@
 // status, reason, rule or progress value comes from the domain evaluator unchanged.
 
 import type { MaintenanceReason, MaintenanceStatus } from '../../domain/maintenance/types';
+import { distanceUnit, KM_PER_MILE, type Units } from '../../domain/units';
 
 // UI tone for a status. The screen maps a tone to a colour; keep the semantic split here so the
 // summary counts and the per-component badges always agree.
@@ -134,16 +135,25 @@ export function formatKm(km: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
-// "used of interval km" line for a component that has distance progress.
-export function usageLine(usedKm: number, intervalKm: number, remainingKm: number): string {
+// "used of interval km" line for a component that has distance progress. Stored values stay in
+// kilometres; `units` only changes what the line displays (default keeps metric, so existing
+// metric output is unchanged). The percentage is a ratio of stored kilometres either way.
+export function usageLine(
+  usedKm: number,
+  intervalKm: number,
+  remainingKm: number,
+  units: Units = 'metric',
+): string {
   const px = Math.max(0, Math.round((usedKm / intervalKm) * 100));
+  const unit = distanceUnit(units);
+  const num = (km: number) => (units === 'imperial' ? formatKm(km / KM_PER_MILE) : formatKm(km));
   const left =
     remainingKm > 0
-      ? `${formatKm(remainingKm)} km left`
+      ? `${num(remainingKm)} ${unit} left`
       : remainingKm === 0
         ? 'at the interval now'
-        : `${formatKm(-remainingKm)} km over`;
-  return `${formatKm(usedKm)} of ${formatKm(intervalKm)} km (${px}%) · ${left}`;
+        : `${num(-remainingKm)} ${unit} over`;
+  return `${num(usedKm)} of ${num(intervalKm)} ${unit} (${px}%) · ${left}`;
 }
 
 // ---------------------------------------------------------------- form input parsing (Stage 4C)

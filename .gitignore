@@ -11,3 +11,7 @@ ios/
 !.env.test.example
 *.log
 .DS_Store
+docs/
+.env.test.example
+.env.example
+scripts/

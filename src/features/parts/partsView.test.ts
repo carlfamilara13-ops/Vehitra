@@ -177,3 +177,31 @@ describe('partsView: form input parsing', () => {
     assert.equal(todayInput(new Date(2026, 11, 31)), '2026-12-31');
   });
 });
+
+describe('partsView: usageLine unit conversion', () => {
+  it('keeps metric output byte-identical whether or not units are passed explicitly', () => {
+    assert.equal(usageLine(500, 1500, 1000), '500 of 1500 km (33%) · 1000 km left');
+    assert.equal(usageLine(500, 1500, 1000), usageLine(500, 1500, 1000, 'metric'));
+    assert.equal(
+      usageLine(1500, 1500, 0),
+      usageLine(1500, 1500, 0, 'metric'),
+    );
+    assert.equal(
+      usageLine(1800, 1500, -300),
+      usageLine(1800, 1500, -300, 'metric'),
+    );
+  });
+
+  it('converts every km figure to miles in imperial; percent stays a ratio of stored km', () => {
+    // 1609.344 km = exactly 1000 mi, so rounding to one decimal is stable.
+    assert.equal(
+      usageLine(1609.344, 3218.688, 1609.344, 'imperial'),
+      '1000 of 2000 mi (50%) · 1000 mi left',
+    );
+  });
+
+  it('keeps the same phrase shapes in imperial', () => {
+    assert.match(usageLine(3000, 3000, 0, 'imperial'), /mi \(100%\) · at the interval now$/);
+    assert.match(usageLine(3600, 3000, -600, 'imperial'), /mi \(120%\) · [\d.]+ mi over$/);
+  });
+});

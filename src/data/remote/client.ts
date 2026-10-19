@@ -7,6 +7,45 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 let client: SupabaseClient | null = null;
 
+// Session persistence for signed-in accounts. AsyncStorage is required lazily so this module
+// still imports cleanly in non-native contexts (tests, Node) — where the session then lives in
+// memory for the process only. Storage here holds the standard Supabase session envelope, never
+// a raw password.
+const memoryAuthStore = new Map<string, string>();
+
+type AuthStorage = {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  removeItem(key: string): Promise<void>;
+};
+
+function createAuthStorage(): AuthStorage {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const native = (require('@react-native-async-storage/async-storage') as {
+      default: AuthStorage;
+    }).default;
+    if (native && typeof native.getItem === 'function') {
+      return {
+        getItem: (key) => native.getItem(key),
+        setItem: (key, value) => native.setItem(key, value),
+        removeItem: (key) => native.removeItem(key),
+      };
+    }
+  } catch {
+    // Fall through to the in-memory store.
+  }
+  return {
+    getItem: async (key) => memoryAuthStore.get(key) ?? null,
+    setItem: async (key, value) => {
+      memoryAuthStore.set(key, value);
+    },
+    removeItem: async (key) => {
+      memoryAuthStore.delete(key);
+    },
+  };
+}
+
 export function supabaseConfig(): { url: string; anonKey: string } | null {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
@@ -29,7 +68,14 @@ export function getSupabase(): SupabaseClient {
     );
   }
   client = createClient(cfg.url, cfg.anonKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
+    auth: {
+      // The signed-in session survives app restarts (stored through createAuthStorage) and its
+      // access token refreshes in the background, so a long-running session keeps syncing.
+      persistSession: true,
+      autoRefreshToken: true,
+      storageKey: 'vehitra.supabase.session',
+      storage: createAuthStorage(),
+    },
   });
   return client;
 }
