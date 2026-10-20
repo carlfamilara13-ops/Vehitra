@@ -15,6 +15,11 @@ export const colors = {
   warningSurface: '#3A2A00',
   warningText: '#F2C879',
   success: '#2E7D32',
+  // Glass surface layers, lifted straight from the glass-card reference:
+  // `background: rgba(255,255,255,0.05)` and `border: 1px solid rgba(255,255,255,0.3)`.
+  // Kept as tokens so every card, the tab bar and the buttons share one material.
+  glassFill: 'rgba(255, 255, 255, 0.05)',
+  glassBorder: 'rgba(255, 255, 255, 0.3)',
 } as const;
 
 export const spacing = {
@@ -30,6 +35,8 @@ export const radii = {
   sm: 8,
   md: 12,
   lg: 16,
+  // 20px, the glass-card reference radius.
+  xl: 20,
   pill: 999,
 } as const;
 
