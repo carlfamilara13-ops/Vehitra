@@ -27,6 +27,12 @@
       "expo-sqlite",
       "expo-notifications",
       [
+        "expo-image-picker",
+        {
+          "photosPermission": "Vehitra uses a photo you choose as the portrait on your personal driver profile. The photo stays on this device."
+        }
+      ],
+      [
         "expo-location",
         {
           "locationAlwaysAndWhenInUsePermission": "Vehitra records your ride route, including while the screen is off.",

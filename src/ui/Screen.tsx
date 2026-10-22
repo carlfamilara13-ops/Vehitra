@@ -5,7 +5,8 @@ import { colors, spacing, typography } from './theme';
 import { usePrefs } from '../app/prefs';
 
 type Props = {
-  title: string;
+  /** Optional: a screen that draws its own header (the Dashboard wordmark) passes no title. */
+  title?: string;
   subtitle?: string;
   right?: React.ReactNode;
   scroll?: boolean;
@@ -23,13 +24,15 @@ export default function Screen({ title, subtitle, right, scroll = true, children
   const easy = usePrefs().uiMode === 'easy';
   const inner = (
     <>
-      <View style={s.header}>
-        <View style={s.headerText}>
-          <Text style={[typography.title, easy && s.easyTitle]}>{title}</Text>
-          {!!subtitle && <Text style={[s.subtitle, easy && s.easySubtitle]}>{subtitle}</Text>}
+      {!!(title || right) && (
+        <View style={s.header}>
+          <View style={s.headerText}>
+            {!!title && <Text style={[typography.title, easy && s.easyTitle]}>{title}</Text>}
+            {!!subtitle && <Text style={[s.subtitle, easy && s.easySubtitle]}>{subtitle}</Text>}
+          </View>
+          {right}
         </View>
-        {right}
-      </View>
+      )}
       {children}
     </>
   );

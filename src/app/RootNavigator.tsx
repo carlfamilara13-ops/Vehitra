@@ -5,7 +5,7 @@ import { createBottomTabNavigator, type BottomTabNavigationOptions } from '@reac
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DashboardScreen from '../features/dashboard/DashboardScreen';
-import RecordScreen from '../features/rides/RecordScreen';
+import RecordScreen from '../features/record/RecordScreen';
 import RidesScreen from '../features/rides/RidesScreen';
 import PartsScreen from '../features/parts/PartsScreen';
 import SettingsScreen from '../features/settings/SettingsScreen';

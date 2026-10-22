@@ -8,5 +8,6 @@ import { m006 } from './006_maintenance_invariants';
 import { m007 } from './007_accessories_battery';
 import { m008 } from './008_deadlines_settings';
 import { m009 } from './009_vehicle_catalog';
+import { m010 } from './010_driver_profile';
 
-export const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008, m009];
+export const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008, m009, m010];

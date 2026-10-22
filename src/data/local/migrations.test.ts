@@ -7,7 +7,7 @@ import type { Db } from './types';
 
 // Migration compatibility and seed integrity. These run on disposable databases only —
 // never the device's file. Two guarantees are under test:
-// 1. A database created before the Stage A migrations (v6) upgrades to v9 with all user
+// 1. A database created before the Stage A migrations (v6) upgrades to v10 with all user
 //    rows intact and the new columns/tables present (forward-only, no data rewrite).
 // 2. Re-running migrate() is a no-op: the bundled catalog seed must not duplicate.
 
@@ -32,11 +32,11 @@ describe('migrations', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailabl
     db = createNodeSqliteDb();
   });
 
-  it('initializes a fresh database to v9 with the seeded catalog', async () => {
+  it('initializes a fresh database to v10 with the seeded catalog', async () => {
     const version = await migrate(db, MIGRATIONS);
-    assert.equal(version, 9);
+    assert.equal(version, 10);
     const pragma = await db.getFirstAsync<{ user_version: number }>('PRAGMA user_version');
-    assert.equal(pragma?.user_version, 9);
+    assert.equal(pragma?.user_version, 10);
 
     const c = await counts(db);
     // Verified against the migration source: 5 brands, 21 models (14 branded + 7 generic),
@@ -60,7 +60,7 @@ describe('migrations', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailabl
     await migrate(db, MIGRATIONS);
     const before = await counts(db);
     const second = await migrate(db, MIGRATIONS);
-    assert.equal(second, 9);
+    assert.equal(second, 10);
     const after = await counts(db);
     assert.deepEqual(after, before);
   });
@@ -68,7 +68,7 @@ describe('migrations', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailabl
   it('applies migrations in version order even from a shuffled list', async () => {
     const shuffled = [...MIGRATIONS].reverse();
     const version = await migrate(db, shuffled);
-    assert.equal(version, 9);
+    assert.equal(version, 10);
     const c = await counts(db);
     assert.equal(c.models, 21);
   });
@@ -95,7 +95,7 @@ describe('migrations', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailabl
     await db.runAsync('INSERT INTO meta (key, value) VALUES (?, ?)', 'active_vehicle', 'v-legacy');
 
     const version = await migrate(db, MIGRATIONS);
-    assert.equal(version, 9);
+    assert.equal(version, 10);
 
     const veh = await db.getFirstAsync<{
       nickname: string | null;

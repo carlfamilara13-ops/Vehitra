@@ -3,6 +3,7 @@ import type { ComponentMaintenance } from '../../data/local/maintenanceQuery';
 import { daysUntilDateOnly, pickNextReminder } from '../../domain/reminders/dates';
 import { distanceUnit, formatDistanceKm, type Units } from '../../domain/units';
 import type { MaintenanceStatus } from '../../domain/maintenance/types';
+import { summarize, type StatusCounts } from '../parts/partsView';
 
 // Pure view logic for the Record tab's Garage experience. Everything here is side-effect free so
 // the carousel index, odometer display, maintenance line and per-vehicle reminder can be tested
@@ -105,4 +106,126 @@ export function reminderSummaryLine(
   if (days === 0) return `${kind} due today`;
   if (days <= 30) return `${kind} due in ${days} day${days === 1 ? '' : 's'}`;
   return null;
+}
+
+// ---------------------------------------------------------------------------------------
+// Maintenance condition badge (Record tab)
+//
+// A four-way label derived from the SAME per-component evaluations the Parts screen shows.
+// Nothing is inferred: the label is a summary of the recorded maintenance state only. The
+// vehicle's age, odometer reading and type never enter into it, and a vehicle with no usable
+// maintenance records is never called GOOD.
+//
+//   DUE      at least one component is overdue.
+//   SERVICE  no overdue component, but at least one is due soon.
+//   UNKNOWN  no overdue and no due-soon component, but at least one component's state could
+//            not be determined (no service history, no interval, an invalid rule) — or there
+//            is no applicable component at all, so there is nothing to judge.
+//   GOOD     every applicable component is up to date.
+//
+// The precedence is the same worst-first order the Dashboard's maintenance line uses, so the
+// badge and the line never disagree.
+// ---------------------------------------------------------------------------------------
+
+export type ConditionTone = 'ok' | 'watch' | 'bad' | 'unknown';
+export type ConditionLabel = 'GOOD' | 'SERVICE' | 'DUE' | 'UNKNOWN';
+
+export type VehicleCondition = {
+  label: ConditionLabel;
+  tone: ConditionTone;
+  /** The counts the label was derived from, so the card can show the same numbers. */
+  counts: StatusCounts;
+};
+
+// The plain reading of each condition label, for a screen reader and for any tooltip. The
+// short labels stay on screen; this is what they mean.
+export const CONDITION_DESCRIPTIONS: Record<ConditionLabel, string> = {
+  GOOD: 'Maintenance up to date',
+  SERVICE: 'Maintenance due soon',
+  DUE: 'Maintenance overdue',
+  UNKNOWN: 'Maintenance condition unknown',
+};
+
+export function maintenanceCondition(
+  items: readonly Pick<ComponentMaintenance, 'evaluation'>[],
+): VehicleCondition {
+  const counts = summarize(items.map((i) => i.evaluation.status));
+  // Components that do not apply to this vehicle type say nothing about its condition.
+  const usable = counts.total - counts.not_applicable;
+  if (usable === 0) return { label: 'UNKNOWN', tone: 'unknown', counts };
+  if (counts.overdue > 0) return { label: 'DUE', tone: 'bad', counts };
+  if (counts.due_soon > 0) return { label: 'SERVICE', tone: 'watch', counts };
+  // An undetermined component means "up to date" cannot be claimed for the whole vehicle.
+  if (counts.unknown > 0) return { label: 'UNKNOWN', tone: 'unknown', counts };
+  return { label: 'GOOD', tone: 'ok', counts };
+}
+
+// ---------------------------------------------------------------------------------------
+// Compact vehicle statistics (Record tab)
+//
+// One row of two or three cells, each one a fact the app already holds. A cell is omitted
+// when there is nothing behind it; a cell that has no value says so plainly ("Not set")
+// rather than showing a placeholder or an invented figure.
+// ---------------------------------------------------------------------------------------
+
+export type VehicleStat = {
+  key: string;
+  label: string;
+  value: string;
+  tone: ConditionTone | 'default';
+};
+
+// Short names for the reminder kinds, so a stat cell stays one readable word wide.
+const REMINDER_STAT_LABELS: Record<string, string> = {
+  registration: 'Registration',
+  license: 'Licence',
+  insurance: 'Insurance',
+  inspection: 'Inspection',
+  custom: 'Reminder',
+};
+
+// The next reminder as one compact cell: the kind as the label, the distance as the value.
+export function reminderStat(deadline: DeadlineRow | null, nowMs: number): VehicleStat | null {
+  if (!deadline) return null;
+  const days = daysUntilDateOnly(deadline.due_date, nowMs);
+  if (days == null) return null;
+  const label = deadline.label?.trim() || REMINDER_STAT_LABELS[deadline.kind] || 'Reminder';
+  if (days < 0) return { key: 'reminder', label, value: 'Overdue', tone: 'bad' };
+  if (days === 0) return { key: 'reminder', label, value: 'Today', tone: 'watch' };
+  if (days === 1) return { key: 'reminder', label, value: 'Tomorrow', tone: 'watch' };
+  if (days <= 30) {
+    return { key: 'reminder', label, value: `In ${days} days`, tone: 'watch' };
+  }
+  return { key: 'reminder', label, value: `In ${days} days`, tone: 'default' };
+}
+
+// The stat row for the selected vehicle: how its maintenance stands, the next reminder and
+// the model year. Every value comes from stored records; nothing is estimated.
+export function vehicleStats(input: {
+  items: readonly Pick<ComponentMaintenance, 'evaluation'>[];
+  reminder: DeadlineRow | null;
+  nowMs: number;
+  modelYear: number | null;
+}): VehicleStat[] {
+  const condition = maintenanceCondition(input.items);
+  const stats: VehicleStat[] = [
+    {
+      key: 'maintenance',
+      label: 'Maintenance',
+      value: maintenanceLine(input.items) ?? 'No records',
+      tone: condition.tone,
+    },
+  ];
+
+  const reminder = reminderStat(input.reminder, input.nowMs);
+  if (reminder) stats.push(reminder);
+
+  stats.push({
+    key: 'year',
+    label: 'Year',
+    value: input.modelYear != null ? String(input.modelYear) : 'Not set',
+    tone: 'default',
+  });
+
+  return stats;
 }

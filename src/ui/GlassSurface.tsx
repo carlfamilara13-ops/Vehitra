@@ -100,47 +100,29 @@ export default function GlassSurface({ children, style, intensity = DEFAULT_BLUR
         // composited onto the raised surface colour to land close to the blurred result.
         <View style={s.fallback} pointerEvents="none" />
       )}
-      {/* `inset 0 1px 0 rgba(255,255,255,0.5)` and `inset 0 -1px 0 rgba(255,255,255,0.1)`. */}
-      <View style={s.insetTop} pointerEvents="none" />
-      <View style={s.insetBottom} pointerEvents="none" />
-      <GlassEdges />
       <View style={s.content}>{children}</View>
     </View>
   );
 }
 
-const s = StyleSheet.create({
-  shell: {
-    borderRadius: radii.xl,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
-    // `box-shadow: 0 8px 32px rgba(0,0,0,0.1)`.
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 32,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
-    // `overflow: hidden` — clips the blur and hairlines to the corner radius.
-    overflow: 'hidden',
-  },
+  const s = StyleSheet.create({
+    shell: {
+      borderRadius: radii.xl,
+      // The subtle rim the glass treatment is built on.
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: colors.glassBorder,
+      // `box-shadow: 0 8px 32px rgba(0,0,0,0.1)`.
+      shadowColor: '#000000',
+      shadowOpacity: 0.1,
+      shadowRadius: 32,
+      shadowOffset: { width: 0, height: 8 },
+      elevation: 6,
+      overflow: 'hidden',
+    },
   fallback: { ...fill, backgroundColor: colors.surfaceRaised },
   tint: { ...fill, backgroundColor: colors.glassFill },
-  insetTop: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  insetBottom: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-  },
+  // The two gradient hairlines. `GlassEdges` draws each as a 1px strip of flex segments, so
+  // the strips must be absolutely positioned to stay out of the content flow.
   edgeTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, flexDirection: 'row' },
   edgeLeft: { position: 'absolute', top: 0, left: 0, bottom: 0, width: 1, flexDirection: 'column' },
   seg: { flex: 1 },
