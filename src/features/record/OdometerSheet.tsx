@@ -240,5 +240,5 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   saveDisabled: { opacity: 0.45 },
-  saveTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
+  saveTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
 });

@@ -11,7 +11,7 @@ export const TRACKING = {
   killServiceOnDestroy: false,
   notificationTitle: 'Vehitra',
   notificationBody: 'Recording your ride',
-  notificationColor: '#1E6BFF',
+  notificationColor: '#00FF87',
 };
 
 export const PROCESS: ProcessConfig = {

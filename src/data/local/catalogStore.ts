@@ -4,6 +4,11 @@ import {
   type CatalogProvenance,
   type CatalogReviewStatus,
 } from '../../domain/catalog/packs';
+import {
+  validateCatalogIndex,
+  type CatalogIndexBrand,
+  type CatalogIndexModel,
+} from '../../domain/catalog/index';
 import { serialize } from './serialize';
 import type { Db } from './types';
 import { MaintenanceValidationError } from './maintenanceErrors';
@@ -88,6 +93,45 @@ export async function hasGenericModels(db: Db, vehicleType: string): Promise<boo
     vehicleType,
   );
   return (row?.n ?? 0) > 0;
+}
+
+export async function replaceCatalogIndex(
+  db: Db,
+  brands: readonly CatalogIndexBrand[],
+  models: readonly CatalogIndexModel[],
+): Promise<{ brands: number; models: number }> {
+  const errors = validateCatalogIndex(brands, models);
+  if (errors.length) throw new MaintenanceValidationError(errors);
+  return serialize(async () => {
+    await db.withTransactionAsync(async () => {
+      for (const brand of brands) {
+        await db.runAsync(
+          `INSERT INTO catalog_brands (slug, name)
+           VALUES (?, ?)
+           ON CONFLICT (slug) DO UPDATE SET name = excluded.name`,
+          brand.slug, brand.name,
+        );
+      }
+      await db.runAsync('UPDATE catalog_models SET active = 0');
+      for (const model of models) {
+        await db.runAsync(
+          `INSERT INTO catalog_models
+             (slug, brand_slug, vehicle_type, name, is_generic, sort_order, active)
+           VALUES (?, ?, ?, ?, ?, ?, 1)
+           ON CONFLICT (slug) DO UPDATE SET
+             brand_slug = excluded.brand_slug,
+             vehicle_type = excluded.vehicle_type,
+             name = excluded.name,
+             is_generic = excluded.is_generic,
+             sort_order = excluded.sort_order,
+             active = 1`,
+          model.slug, model.brandSlug, model.vehicleType, model.name,
+          model.isGeneric ? 1 : 0, model.sortOrder,
+        );
+      }
+    });
+    return { brands: brands.length, models: models.length };
+  });
 }
 
 const toPackRow = (r: CatalogComponentRow): CatalogPackRow => ({

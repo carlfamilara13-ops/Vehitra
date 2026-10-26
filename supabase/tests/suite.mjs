@@ -15,7 +15,7 @@ const UNIQUE = /unique|duplicate key/i;
 const ALL_TABLES = [
   'vehicle_types', 'brands', 'assets', 'component_definitions', 'vehicle_models', 'model_versions',
   'model_components', 'user_settings', 'user_vehicles', 'rides', 'mileage_entries', 'service_events',
-  'part_installs', 'component_overrides', 'deadlines', 'model_requests',
+  'part_installs', 'component_overrides', 'deadlines', 'model_requests', 'admin_members', 'audit_events',
 ];
 const USER_TABLES = [
   'user_settings', 'user_vehicles', 'rides', 'mileage_entries', 'service_events',
@@ -173,6 +173,77 @@ export function runSuite(target) {
       // user accepts the update explicitly; model cannot be switched
       await c.as(A, 'update public.user_vehicles set catalog_version = 2 where id = $1', [vehA]);
       await c.asFails(A, `update public.user_vehicles set model_id = (select id from public.vehicle_models where slug = 'honda-click-125') where id = $1`, [vehA], /cannot change model/i);
+    });
+
+    // ------------------------------------------------------------------ admin console
+    scenario('admin console enforces roles, audits writes, and keeps app users read-only', async (c) => {
+      const { A, B, model, comp } = await fixture(c);
+      const aEmail = `rls-a-${A}@example.test`;
+      const bEmail = `rls-b-${B}@example.test`;
+      const oil = await comp('engine_oil');
+
+      await c.asFails(A, 'select public.admin_health()', [], /not authorized|permission denied/i);
+      assert.equal(await c.n(A, 'select count(*)::int as n from public.audit_events'), 0);
+      assert.equal(await c.n(A, 'select count(*)::int as n from public.admin_members'), 0);
+
+      // Bootstrap the first super admin the way an operator would (SQL editor / service role).
+      await c.sup(`insert into public.admin_members (user_id, email, display_name, role)
+        values ($1,$2,'Admin A','super_admin')`, [A, aEmail]);
+      const health = (await c.as(A, 'select public.admin_health() as h')).rows[0].h;
+      assert.equal(health.role, 'super_admin');
+      assert.ok(health.audit_events > 0);
+      await c.as(A, 'select public.admin_touch_session()');
+
+      // Drafts are visible to admins, still hidden from normal users.
+      const v2 = (await c.as(A, 'select public.admin_begin_version($1) as v', [model.id])).rows[0].v;
+      assert.equal(v2, 2);
+      assert.equal(await c.n(A, 'select count(*)::int as n from public.model_versions where model_id = $1', [model.id]), 2);
+      assert.equal(await c.n(B, 'select count(*)::int as n from public.model_versions where model_id = $1', [model.id]), 1);
+
+      await c.as(A, `select public.admin_save_rule($1,$2,$3,2000,null,20,null,'Admin console test','draft',null)`,
+        [model.id, oil, v2]);
+      assert.equal((await c.as(A, `select interval_km from public.model_components
+        where model_id = $1 and version = $2 and component_id = $3`, [model.id, v2, oil])).rows[0].interval_km, 2000);
+
+      // Review metadata may change on a published version; numbers may not.
+      await c.as(A, `select public.admin_review_rule($1,$2,1,true,'Admin A','reviewed in test')`, [model.id, oil]);
+      assert.equal((await c.as(A, `select review_status from public.model_components
+        where model_id = $1 and version = 1 and component_id = $2`, [model.id, oil])).rows[0].review_status, 'reviewed');
+      await c.asFails(A, `select public.admin_save_rule($1,$2,1,9999,null,20,null,null,'draft',null)`,
+        [model.id, oil], /frozen|new version/i);
+
+      // New models start as an unpublished v1 with no rules; publish requires at least one rule.
+      const brand = (await c.as(A, `select public.admin_create_brand('test-brand','Test Brand') as id`)).rows[0].id;
+      const mid = (await c.as(A, `select public.admin_create_model('test-model','Test Model','test-brand','motorcycle',2020,2024,10) as id`)).rows[0].id;
+      assert.ok(brand && mid);
+      await c.asFails(A, `select public.admin_publish_version($1,1)`, [mid], /no maintenance rules/i);
+      await c.as(A, `select public.admin_save_rule($1,$2,1,3000,null,25,null,'created in test','reviewed','Admin A')`, [mid, oil]);
+      await c.as(A, `select public.admin_publish_version($1,1)`, [mid]);
+      assert.equal(await c.n(B, `select count(*)::int as n from public.model_components where model_id = $1 and version = 1`, [mid]), 1);
+      await c.asFails(B, `select public.admin_save_rule($1,$2,1,1,null,10,null,null,'draft',null)`,
+        [mid, oil], /not authorized|permission denied/i);
+
+      // The support role can read admin data but cannot mutate catalog or grant roles.
+      await c.as(A, `select public.admin_grant_role($1,'B Support','support_admin')`, [bEmail]);
+      await c.as(B, 'select public.admin_health()');
+      await c.asFails(B, `select public.admin_create_brand('evil-brand','Evil')`, [], /not authorized|permission denied/i);
+      await c.asFails(B, `select public.admin_grant_role($1,'X','catalog_admin')`, [aEmail], /not authorized|permission denied/i);
+      await c.asFails(A, `select public.admin_update_member($1,'catalog_admin','active')`, [A], /yourself|own role/i);
+
+      // Requests are visible to every admin, not to normal users, and updates are audited.
+      const rid = randomUUID();
+      await c.as(B, `insert into public.model_requests (id, vehicle_type_code, model_text)
+        values ($1,'motorcycle','Test Request')`, [rid]);
+      assert.equal(await c.n(A, 'select count(*)::int as n from public.model_requests where id = $1', [rid]), 1);
+      assert.equal(await c.n(A, `select public.admin_set_request_status(array[$1]::uuid[],'added') as n`, [rid]), 1);
+      assert.equal((await c.as(A, 'select status from public.model_requests where id = $1', [rid])).rows[0].status, 'added');
+
+      const actions = (await c.as(A, 'select distinct action from public.audit_events')).rows.map((r) => r.action);
+      assert.ok(actions.includes('vehicle_models.insert'));
+      assert.ok(actions.includes('model_versions.update'));
+      assert.ok(actions.includes('model_requests.update'));
+      await c.fails('postgres', null,
+        `update public.audit_events set action = 'x' where id = (select min(id) from public.audit_events)`, [], IMMUTABLE);
     });
 
     // ------------------------------------------------------------------ ownership

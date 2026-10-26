@@ -1,4 +1,5 @@
 import type { CatalogPackRow } from '../../domain/catalog/packs';
+import type { CatalogIndexBrand, CatalogIndexModel } from '../../domain/catalog/index';
 
 // Pure mapping between cloud catalog rows and the local pack shape. Kept free of any
 // network/RN imports so it runs in unit tests and stays a dumb, explicit translation.
@@ -11,6 +12,37 @@ export type RemotePackRow = {
   source_note: string | null;
   component: { code: string } | null;
 };
+
+export type RemoteBrandRow = {
+  slug: string;
+  name: string;
+};
+
+export type RemoteIndexModelRow = {
+  slug: string;
+  name: string;
+  is_generic: boolean;
+  sort_order: number | string | null;
+  brand: { slug: string } | null;
+  vehicle_type: { code: string } | null;
+};
+
+export function remoteBrandToIndex(row: RemoteBrandRow): CatalogIndexBrand {
+  return { slug: row.slug, name: row.name };
+}
+
+export function remoteModelToIndex(row: RemoteIndexModelRow): CatalogIndexModel {
+  const brandSlug = row.brand?.slug ?? null;
+  const rawSort = row.sort_order == null ? 100 : Number(row.sort_order);
+  return {
+    slug: row.slug,
+    brandSlug,
+    vehicleType: row.vehicle_type?.code ?? '',
+    name: row.name,
+    isGeneric: row.is_generic,
+    sortOrder: Number.isFinite(rawSort) ? rawSort : Number.NaN,
+  };
+}
 
 // Maps one fetched cloud row to the local pack row. Unknown review statuses collapse to
 // 'draft' (never trust a value we do not know), and provenance records the origin so the UI

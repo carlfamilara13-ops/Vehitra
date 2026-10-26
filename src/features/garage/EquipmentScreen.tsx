@@ -233,7 +233,7 @@ export default function EquipmentScreen({ navigation, route }: Props) {
   const levelColors: Record<string, { bg: string; fg: string }> = {
     ok: { bg: colors.surfaceRaised, fg: colors.textMuted },
     watch: { bg: colors.warningSurface, fg: colors.warningText },
-    warn: { bg: '#3A1414', fg: '#FF8A80' },
+    warn: { bg: 'rgba(255, 127, 152, 0.14)', fg: colors.danger },
   };
 
   return (
@@ -464,7 +464,7 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: spacing.sm,
   },
-  btnPrimaryTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
+  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   btnGhost: {
     alignSelf: 'flex-start',
     borderColor: colors.primary,

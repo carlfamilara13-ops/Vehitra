@@ -206,7 +206,7 @@ function Scrim() {
       {SCRIM_BANDS.map((alpha, i) => (
         <View
           key={i}
-          style={[s.scrimBand, { bottom: i * SCRIM_BAND_HEIGHT, backgroundColor: `rgba(5, 7, 13, ${alpha})` }]}
+          style={[s.scrimBand, { bottom: i * SCRIM_BAND_HEIGHT, backgroundColor: `rgba(10, 10, 26, ${alpha})` }]}
         />
       ))}
     </View>
@@ -316,7 +316,7 @@ const s = StyleSheet.create({
     // backdrop stays visible through the transparent parts of the artwork.
     resizeMode: 'contain',
   },
-  scrimBase: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0, 64, 255, 0)' },
+  scrimBase: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(10, 10, 26, 0)' },
   scrimBand: { position: 'absolute', left: 0, right: 0, height: SCRIM_BAND_HEIGHT },
   stageType: { ...typography.heading, fontSize: 16, textAlign: 'center', marginTop: spacing.sm },
   stagePlate: { ...typography.caption, textAlign: 'center', marginTop: spacing.xs, letterSpacing: 1.5 },

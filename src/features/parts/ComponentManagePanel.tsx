@@ -466,7 +466,7 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginLeft: spacing.sm,
   },
-  smallBtnTxt: { ...typography.body, color: colors.text, fontWeight: '700' },
+  smallBtnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   smallGhost: {
     borderColor: colors.border,
     borderWidth: StyleSheet.hairlineWidth,
@@ -503,7 +503,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 40,
-    borderColor: 'rgba(77, 141, 255, 0.45)',
+    borderColor: 'rgba(96, 239, 255, 0.42)',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.pill,
     paddingVertical: spacing.sm,

@@ -357,7 +357,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.lg,
   },
-  btnPrimaryTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
+  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   btnGhost: { alignItems: 'center', paddingVertical: spacing.sm + 2, marginTop: spacing.xs },
   btnGhostTxt: { ...typography.body, color: colors.primary, fontWeight: '600' },
   btnDisabled: { opacity: 0.6 },

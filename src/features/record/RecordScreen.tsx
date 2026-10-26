@@ -403,5 +403,5 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
   },
-  startBtnTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700', letterSpacing: 0.5 },
+  startBtnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700', letterSpacing: 0.5 },
 });

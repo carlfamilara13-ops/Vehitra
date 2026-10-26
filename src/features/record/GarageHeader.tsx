@@ -49,7 +49,7 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.md,
     // The shared 5% glass fill alone is thin over the dark background; a small dark wash
     // underneath keeps the label legible without turning the button into a solid chip.
-    backgroundColor: 'rgba(5, 7, 13, 0.55)',
+    backgroundColor: 'rgba(10, 10, 26, 0.55)',
   },
   easyBtn: { minHeight: 48 },
   row: { flexDirection: 'row', alignItems: 'center' },

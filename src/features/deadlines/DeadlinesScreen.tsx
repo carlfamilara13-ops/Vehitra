@@ -541,7 +541,7 @@ const s = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipTxt: { ...typography.caption, color: colors.textMuted },
-  chipTxtSelected: { color: '#FFFFFF', fontWeight: '700' },
+  chipTxtSelected: { color: colors.primaryInk, fontWeight: '700' },
   input: {
     backgroundColor: colors.surfaceRaised,
     borderColor: colors.border,
@@ -561,7 +561,7 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginRight: spacing.md,
   },
-  btnPrimaryTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
+  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   btnGhost: {
     alignSelf: 'flex-start',
     borderColor: colors.primary,

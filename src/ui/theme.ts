@@ -1,37 +1,34 @@
 import type { TextStyle } from 'react-native';
 
-// Shared design tokens. Colors mirror the palette already used by the ride screen
-// (dark background, card, blue accent, light text, muted text) so the app reads as one product.
+// Shared design tokens mirrored from the web console palette: deep navy surfaces, neon green
+// primary actions, cyan accent text, and light text. Solid primary buttons use `primaryInk`.
 export const colors = {
-  background: '#05070D',
-  surface: '#0B0F1A',
-  surfaceRaised: '#111726',
-  border: '#1B2333',
-  primary: '#1E6BFF',
-  primaryPressed: '#1653CC',
-  // Lighter cut of `primary`, for primary-coloured text and icons drawn on the dark surfaces.
-  // `primary` lands at ~4.2:1 against `surface` — under the 4.5:1 needed for small text — while
-  // this sits at ~6:1, so emphasis stays readable instead of decorative.
-  primaryBright: '#4D8DFF',
-  text: '#E8EEFF',
-  textMuted: '#8A96B5',
-  danger: '#C62828',
-  warningSurface: '#3A2A00',
-  warningText: '#F2C879',
-  success: '#2E7D32',
-  // Lighter cuts of `success` / `danger`, for status LABELS drawn on the near-black ground.
-  // The dark fills above are for chips and buttons; as text they sit under the 4.5:1 needed
-  // for small type, while these clear it (~9:1 and ~6:1 against `background`).
-  successText: '#5FD37A',
-  dangerText: '#F87171',
+  background: '#0A0A1A',
+  surface: '#11152A',
+  surfaceRaised: '#171C35',
+  border: '#252C4A',
+  primary: '#00FF87',
+  primaryPressed: '#00D96F',
+  primaryInk: '#041810',
+  // Cyan accent used by the web console for links, selected states, and secondary emphasis.
+  primaryBright: '#60EFFF',
+  text: '#E9F1FF',
+  textMuted: '#93A0BF',
+  danger: '#FF7F98',
+  dangerSolid: '#A50F31',
+  warningSurface: '#2B210D',
+  warningText: '#FFC46B',
+  success: '#4DFFC4',
+  successText: '#7BFFD8',
+  dangerText: '#FF7F98',
   // Tinted wash for emphasis (active tab, selected row). Keeps "active" from depending on a hue
   // change alone, and stays legible against the near-black background at small sizes.
-  primaryTint: 'rgba(30, 107, 255, 0.16)',
+  primaryTint: 'rgba(0, 255, 135, 0.14)',
   // Glass surface layers
   glassFill: 'transparent',
   glassPanel: 'transparent',
   glassSheen: 'rgba(255, 255, 255, 0.08)',
-  glassBorder: 'rgba(255, 255, 255, 0.3)',
+  glassBorder: 'rgba(205, 222, 255, 0.28)',
 } as const;
 
 // Display face for titles, headings and metrics. Loaded in App.tsx through expo-font; while a

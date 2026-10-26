@@ -112,7 +112,7 @@ const TAB_BAR_CONTENT_HEIGHT = 56;
 function RecordButton({ focused }: { focused: boolean }) {
   return (
     <View style={[s.record, focused ? s.recordOn : s.recordOff]}>
-      <Ionicons name="ellipse" size={11} color={focused ? '#FFFFFF' : colors.primaryBright} />
+      <Ionicons name="ellipse" size={11} color={focused ? colors.primaryInk : colors.primaryBright} />
     </View>
   );
 }

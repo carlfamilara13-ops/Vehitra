@@ -387,7 +387,7 @@ const s = StyleSheet.create({
     marginTop: spacing.xl,
   },
   btnDisabled: { opacity: 0.6 },
-  btnTxt: { ...typography.body, color: colors.text, fontWeight: '700' },
+  btnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   btnGhost: {
     borderColor: colors.primary,
     borderWidth: StyleSheet.hairlineWidth,

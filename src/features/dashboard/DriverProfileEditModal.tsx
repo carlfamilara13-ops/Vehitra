@@ -518,7 +518,7 @@ const s = StyleSheet.create({
     marginTop: spacing.lg,
   },
   disabled: { opacity: 0.6 },
-  saveTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
+  saveTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   cancelBtn: { alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: spacing.sm },
   cancelTxt: { ...typography.body, color: colors.primaryBright, fontWeight: '600' },
 });

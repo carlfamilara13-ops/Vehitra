@@ -47,7 +47,7 @@ const s = StyleSheet.create({
     // Anchored left on its own row so it reads as a text action rather than a second button.
     alignSelf: 'flex-start',
   },
-  solidTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
+  solidTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   quietTxt: { ...typography.body, color: colors.primaryBright, fontWeight: '600' },
   easyTarget: { minHeight: 52 },
   easyTxt: { fontSize: 17 },

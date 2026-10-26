@@ -58,9 +58,9 @@ const TONE_COLORS: Record<StatusTone, string> = {
 };
 
 const TONE_PILL: Record<StatusTone, { bg: string; border: string }> = {
-  good: { bg: 'rgba(95, 211, 122, 0.12)', border: 'rgba(95, 211, 122, 0.35)' },
-  due: { bg: 'rgba(242, 200, 121, 0.12)', border: 'rgba(242, 200, 121, 0.35)' },
-  overdue: { bg: 'rgba(248, 113, 113, 0.14)', border: 'rgba(248, 113, 113, 0.38)' },
+  good: { bg: 'rgba(77, 255, 196, 0.12)', border: 'rgba(77, 255, 196, 0.34)' },
+  due: { bg: 'rgba(255, 196, 107, 0.12)', border: 'rgba(255, 196, 107, 0.35)' },
+  overdue: { bg: 'rgba(255, 127, 152, 0.14)', border: 'rgba(255, 127, 152, 0.38)' },
   unknown: { bg: 'rgba(255, 255, 255, 0.05)', border: colors.glassBorder },
   off: { bg: 'rgba(255, 255, 255, 0.05)', border: colors.glassBorder },
 };
@@ -482,7 +482,7 @@ const s = StyleSheet.create({
     padding: spacing.lg,
     marginTop: spacing.md,
   },
-  cardOverdue: { borderColor: 'rgba(248, 113, 113, 0.45)' },
+  cardOverdue: { borderColor: 'rgba(255, 127, 152, 0.45)' },
   errorCard: { borderColor: colors.danger },
   cardTitle: { ...typography.heading, fontSize: 16 },
   muted: { ...typography.body, color: colors.textMuted, lineHeight: 20, marginTop: spacing.sm },
@@ -501,7 +501,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primaryTint,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(77, 141, 255, 0.45)',
+    borderColor: 'rgba(96, 239, 255, 0.42)',
   },
 
   odo: {
@@ -605,7 +605,7 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginLeft: spacing.sm,
   },
-  btnTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
+  btnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   disabled: { opacity: 0.6 },
   track: {
     height: 6,
@@ -621,7 +621,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing.xs,
     minHeight: 40,
-    borderColor: 'rgba(77, 141, 255, 0.45)',
+    borderColor: 'rgba(96, 239, 255, 0.42)',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.pill,
     paddingVertical: spacing.sm,
@@ -640,7 +640,7 @@ const s = StyleSheet.create({
   },
   btnGhost: {
     alignSelf: 'flex-start',
-    borderColor: 'rgba(77, 141, 255, 0.45)',
+    borderColor: 'rgba(96, 239, 255, 0.42)',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.sm,
     paddingVertical: spacing.sm,

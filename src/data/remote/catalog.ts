@@ -2,7 +2,19 @@ import {
   validateCatalogPack,
   type CatalogPackRow,
 } from '../../domain/catalog/packs';
-import { remoteRowToPackRow, type RemotePackRow } from './catalogMap';
+import {
+  validateCatalogIndex,
+  type CatalogIndexBrand,
+  type CatalogIndexModel,
+} from '../../domain/catalog/index';
+import {
+  remoteBrandToIndex,
+  remoteModelToIndex,
+  remoteRowToPackRow,
+  type RemoteBrandRow,
+  type RemoteIndexModelRow,
+  type RemotePackRow,
+} from './catalogMap';
 import { getSupabase, hasSupabaseConfig } from './client';
 
 // One-model resource-pack download. The cloud catalog is versioned and read-only for users:
@@ -21,6 +33,38 @@ export type CatalogDownloadResult =
   | { ok: false; reason: 'not_configured' | 'network' | 'not_found' | 'invalid_data'; message: string };
 
 export { remoteRowToPackRow, type RemotePackRow } from './catalogMap';
+
+export type CatalogIndexResult =
+  | { ok: true; brands: CatalogIndexBrand[]; models: CatalogIndexModel[] }
+  | { ok: false; reason: 'not_configured' | 'network' | 'invalid_data'; message: string };
+
+export async function downloadCatalogIndex(): Promise<CatalogIndexResult> {
+  if (!hasSupabaseConfig()) {
+    return { ok: false, reason: 'not_configured', message: 'Cloud catalog is not configured.' };
+  }
+  try {
+    const supabase = getSupabase();
+    const [brandRows, modelRows] = await Promise.all([
+      supabase.from('brands').select('slug, name'),
+      supabase
+        .from('vehicle_models')
+        .select('slug, name, is_generic, sort_order, brand:brands(slug), vehicle_type:vehicle_types(code)')
+        .eq('active', true),
+    ]);
+    if (brandRows.error) return { ok: false, reason: 'network', message: brandRows.error.message };
+    if (modelRows.error) return { ok: false, reason: 'network', message: modelRows.error.message };
+
+    const brands = (brandRows.data ?? []).map((r) => remoteBrandToIndex(r as unknown as RemoteBrandRow));
+    const models = (modelRows.data ?? []).map((r) => remoteModelToIndex(r as unknown as RemoteIndexModelRow));
+    const problems = validateCatalogIndex(brands, models);
+    if (problems.length > 0) {
+      return { ok: false, reason: 'invalid_data', message: problems.join(' ') };
+    }
+    return { ok: true, brands, models };
+  } catch (e) {
+    return { ok: false, reason: 'network', message: e instanceof Error ? e.message : String(e) };
+  }
+}
 
 // Downloads (or re-downloads) the published pack for one model. Never throws: the outcome is
 // explicit so the screen can keep bundled data and tell the user what happened.

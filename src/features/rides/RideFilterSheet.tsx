@@ -350,7 +350,7 @@ const s = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipTxt: { ...typography.caption, color: colors.textMuted },
-  chipTxtSelected: { color: '#FFFFFF', fontWeight: '700' },
+  chipTxtSelected: { color: colors.primaryInk, fontWeight: '700' },
   inputRow: { flexDirection: 'row', gap: spacing.sm },
   input: {
     backgroundColor: colors.surfaceRaised,
@@ -391,5 +391,5 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   applyDisabled: { opacity: 0.45 },
-  applyTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
+  applyTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
 });

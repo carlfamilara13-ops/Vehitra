@@ -29,9 +29,9 @@ type Props = {
 // The treatment of each condition: a restrained tinted pill. The label inside carries the
 // meaning, so the state never rests on colour alone.
 const CONDITION_STYLE: Record<ConditionTone, { bg: string; border: string; fg: string }> = {
-  ok: { bg: 'rgba(95, 211, 122, 0.12)', border: 'rgba(95, 211, 122, 0.35)', fg: colors.successText },
-  watch: { bg: 'rgba(242, 200, 121, 0.12)', border: 'rgba(242, 200, 121, 0.35)', fg: colors.warningText },
-  bad: { bg: 'rgba(248, 113, 113, 0.14)', border: 'rgba(248, 113, 113, 0.38)', fg: colors.dangerText },
+  ok: { bg: 'rgba(77, 255, 196, 0.12)', border: 'rgba(77, 255, 196, 0.34)', fg: colors.successText },
+  watch: { bg: 'rgba(255, 196, 107, 0.12)', border: 'rgba(255, 196, 107, 0.35)', fg: colors.warningText },
+  bad: { bg: 'rgba(255, 127, 152, 0.14)', border: 'rgba(255, 127, 152, 0.38)', fg: colors.dangerText },
   unknown: { bg: 'rgba(255, 255, 255, 0.05)', border: colors.glassBorder, fg: colors.textMuted },
 };
 
@@ -280,7 +280,7 @@ const s = StyleSheet.create({
   secondaryTxt: { ...typography.label, fontSize: 12, color: colors.text, fontWeight: '600' },
   actions: { marginTop: spacing.md },
   stopBtn: {
-    backgroundColor: colors.danger,
+    backgroundColor: colors.dangerSolid,
     borderRadius: radii.xl,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: colors.glassBorder,

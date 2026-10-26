@@ -8,12 +8,13 @@ import {
   listCatalogBrands,
   listCatalogModels,
   getModelPack,
+  replaceCatalogIndex,
   replaceModelPack,
   type CatalogBrandRow,
   type CatalogModelRow,
 } from '../../data/local/catalogStore';
 import { getAppSettings } from '../../data/local/settingsStore';
-import { downloadModelPack } from '../../data/remote/catalog';
+import { downloadCatalogIndex, downloadModelPack } from '../../data/remote/catalog';
 import { hasSupabaseConfig } from '../../data/remote/client';
 import { getComponentDefinition } from '../../domain/maintenance/components';
 import type { CatalogPackRow } from '../../domain/catalog/packs';
@@ -29,6 +30,10 @@ type Props = BottomTabScreenProps<RootTabParamList, 'VehicleLibrary'>;
 const GENERIC = '__generic__';
 
 type DownloadState = { status: 'idle' | 'busy' } | { status: 'done'; version: number } | { status: 'error'; message: string };
+type CatalogSyncState =
+  | { status: 'idle' | 'busy' }
+  | { status: 'done'; brands: number; models: number }
+  | { status: 'error'; message: string };
 
 // Vehicle library: type → brand → model → confirm. Reads only the local catalog tables, so it
 // works fully offline; a pack refresh against the cloud catalog is an explicit extra action whose
@@ -47,6 +52,7 @@ export default function VehicleLibraryScreen({ navigation }: Props) {
   const [units, setUnits] = useState<Units>('metric');
   const [loading, setLoading] = useState(false);
   const [download, setDownload] = useState<DownloadState>({ status: 'idle' });
+  const [sync, setSync] = useState<CatalogSyncState>({ status: 'idle' });
 
   useFocusEffect(
     useCallback(() => {
@@ -148,6 +154,39 @@ export default function VehicleLibraryScreen({ navigation }: Props) {
       setDownload({ status: 'error', message: e instanceof Error ? e.message : String(e) });
     }
   }, [model]);
+
+  const syncCatalog = useCallback(async () => {
+    if (sync.status === 'busy') return;
+    setSync({ status: 'busy' });
+    try {
+      const result = await downloadCatalogIndex();
+      if (!result.ok) {
+        setSync({ status: 'error', message: result.message });
+        return;
+      }
+      const db = await getDb();
+      const counts = await replaceCatalogIndex(db, result.brands, result.models);
+      if (type) {
+        const [nextBrands, hasGeneric] = await Promise.all([
+          listCatalogBrands(db, type),
+          hasGenericModels(db, type),
+        ]);
+        setBrands(nextBrands);
+        setGenericAvailable(hasGeneric);
+        if (brandSlug !== undefined) {
+          const nextModels = await listCatalogModels(db, type, brandSlug);
+          setModels(nextModels);
+          if (model && !nextModels.some((m) => m.slug === model.slug)) {
+            setModel(null);
+            setPack([]);
+          }
+        }
+      }
+      setSync({ status: 'done', ...counts });
+    } catch (e) {
+      setSync({ status: 'error', message: e instanceof Error ? e.message : String(e) });
+    }
+  }, [brandSlug, model, sync.status, type]);
 
   const useModel = useCallback(() => {
     if (!model || !type) return;
@@ -397,7 +436,7 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.lg,
   },
-  btnPrimaryTxt: { ...typography.body, color: colors.text, fontWeight: '700' },
+  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   btnGhost: {
     borderColor: colors.primary,
     borderWidth: StyleSheet.hairlineWidth,
