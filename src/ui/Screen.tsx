@@ -1,5 +1,15 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ImageSourcePropType,
+  type ImageStyle,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from './theme';
 import { usePrefs } from '../app/prefs';
@@ -15,10 +25,24 @@ type Props = {
   // Taps on controls inside the scroll view. Defaults to the React Native default ('never'); a
   // screen with inline forms passes 'handled' so buttons work while the keyboard is open.
   keyboardShouldPersistTaps?: 'never' | 'always' | 'handled';
+  // Optional fixed full-screen artwork drawn behind the content. The image style is where a
+  // caller sets its zoom and placement (scale / translateX / translateY) without touching layout.
+  backgroundImage?: ImageSourcePropType;
+  backgroundImageStyle?: StyleProp<ImageStyle>;
 };
 
 // Common screen frame: safe-area aware, dark background and a consistent header.
-export default function Screen({ title, subtitle, right, scroll = true, children, contentStyle, keyboardShouldPersistTaps }: Props) {
+export default function Screen({
+  title,
+  subtitle,
+  right,
+  scroll = true,
+  children,
+  contentStyle,
+  keyboardShouldPersistTaps,
+  backgroundImage,
+  backgroundImageStyle,
+}: Props) {
   // Easy mode enlarges the shared frame text on every screen (the Dashboard adds its own
   // metric sizing on top). Read from prefs here so no screen has to remember to opt in.
   const easy = usePrefs().uiMode === 'easy';
@@ -39,6 +63,15 @@ export default function Screen({ title, subtitle, right, scroll = true, children
 
   return (
     <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
+      {backgroundImage ? (
+        <Image
+          source={backgroundImage}
+          style={[StyleSheet.absoluteFill, s.bgImage, backgroundImageStyle]}
+          resizeMode="cover"
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
+      ) : null}
       {scroll ? (
         <ScrollView
           contentContainerStyle={[s.content, contentStyle]}
@@ -57,6 +90,7 @@ export default function Screen({ title, subtitle, right, scroll = true, children
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   flex: { flex: 1 },
+  bgImage: { zIndex: 0 },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   header: {
     flexDirection: 'row',

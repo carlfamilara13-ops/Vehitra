@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
 import { getDb } from '../../data/local/db';
 import { deleteOverride, getOverride, upsertOverride } from '../../data/local/overrideStore';
-import { insertServiceEvent } from '../../data/local/serviceStore';
-import { replaceInstall } from '../../data/local/installStore';
+import { insertServiceEvent, listServiceEvents, type ServiceEventRow } from '../../data/local/serviceStore';
+import { listInstalls, replaceInstall, type PartInstallRow } from '../../data/local/installStore';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import {
   parseDateInput,
@@ -209,6 +209,43 @@ export default function ComponentManagePanel({
 
   const logChoices = ['service', ...LOG_ACTIONS.filter((a) => allowedActions.includes(a))];
 
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [installs, setInstalls] = useState<PartInstallRow[]>([]);
+  const [events, setEvents] = useState<ServiceEventRow[]>([]);
+
+  const loadHistory = useCallback(async () => {
+    setHistoryLoading(true);
+    try {
+      const db = await getDb();
+      const [inst, ev] = await Promise.all([
+        listInstalls(db, vehicleId, componentCode),
+        listServiceEvents(db, vehicleId, componentCode),
+      ]);
+      setInstalls(inst);
+      setEvents(ev);
+    } catch (e) {
+      setError((e instanceof Error ? e.message : String(e)));
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [vehicleId, componentCode]);
+
+  useEffect(() => {
+    if (historyOpen) {
+      void loadHistory();
+    }
+  }, [historyOpen, loadHistory]);
+
+  const formatDate = (ms: number) => {
+    try {
+      const d = new Date(ms);
+      return d.toLocaleDateString();
+    } catch {
+      return String(ms);
+    }
+  };
+
   return (
     <View style={s.panel}>
       <Text style={s.sectionTitle}>Custom interval</Text>
@@ -307,6 +344,75 @@ export default function ComponentManagePanel({
         </>
       )}
 
+      <TouchableOpacity
+        style={[s.manageBtn, { marginTop: spacing.lg }]}
+        onPress={() => setHistoryOpen((v) => !v)}
+        accessibilityRole="button"
+        accessibilityState={{ expanded: historyOpen }}
+        accessibilityLabel={`History for ${componentName}`}
+      >
+        <Text style={s.manageTxt}>{historyOpen ? 'Hide history' : 'View history'}</Text>
+      </TouchableOpacity>
+
+      {historyOpen && (
+        <View style={s.historySection}>
+          <Text style={s.sectionTitle}>Installed parts</Text>
+          {historyLoading && installs.length === 0 && events.length === 0 ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.sm }} />
+          ) : installs.length === 0 ? (
+            <Text style={s.hint}>No install records.</Text>
+          ) : (
+            installs.map((i) => (
+              <View key={i.id} style={s.historyItem}>
+                <Text style={s.historyTitle}>
+                  {i.removed_at ? 'Replaced/removed' : 'Current install'}
+                </Text>
+                <Text style={s.hint}>
+                  Installed {formatDate(i.installed_at)}
+                  {i.install_odo != null ? ` · ${i.install_odo} km` : ''}
+                </Text>
+                {(i.brand || i.model) && (
+                  <Text style={s.hint}>
+                    {[i.brand, i.model].filter(Boolean).join(' · ')}
+                  </Text>
+                )}
+                {i.removed_at && (
+                  <Text style={s.hint}>
+                    Removed {formatDate(i.removed_at)}
+                    {i.removal_odo != null ? ` · ${i.removal_odo} km` : ''}
+                    {i.close_notes ? ` · ${i.close_notes}` : ''}
+                  </Text>
+                )}
+                {i.notes && <Text style={s.hint}>Notes: {i.notes}</Text>}
+              </View>
+            ))
+          )}
+
+          <Text style={[s.sectionTitle, { marginTop: spacing.md }]}>Service history</Text>
+          {historyLoading && events.length === 0 ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: spacing.sm }} />
+          ) : events.length === 0 ? (
+            <Text style={s.hint}>No service events.</Text>
+          ) : (
+            events
+              .slice()
+              .reverse()
+              .map((ev) => (
+                <View key={ev.id} style={s.historyItem}>
+                  <Text style={s.historyTitle}>{ev.action}</Text>
+                  <Text style={s.hint}>
+                    {formatDate(ev.performed_at)}
+                    {ev.odo_at != null ? ` · ${ev.odo_at} km` : ''}
+                    {ev.estimated ? ' · estimated' : ''}
+                    {ev.voids_event_id ? ' · void' : ''}
+                  </Text>
+                  {ev.notes && <Text style={s.hint}>{ev.notes}</Text>}
+                </View>
+              ))
+          )}
+        </View>
+      )}
+
       {!!error && <Text style={s.errorTxt}>{error}</Text>}
       {!!ok && <Text style={s.okTxt}>{ok}</Text>}
     </View>
@@ -373,7 +479,7 @@ const s = StyleSheet.create({
   hint: { ...typography.caption, lineHeight: 18, marginBottom: spacing.sm },
   chips: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm },
   chip: {
-    borderColor: colors.border,
+    borderColor: colors.glassBorder,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.pill,
     paddingVertical: spacing.sm,
@@ -381,9 +487,9 @@ const s = StyleSheet.create({
     marginRight: spacing.sm,
     marginBottom: spacing.sm,
   },
-  chipSelected: { borderColor: colors.primary, backgroundColor: colors.surfaceRaised },
+  chipSelected: { borderColor: colors.primaryBright, backgroundColor: colors.primaryTint },
   chipTxt: { ...typography.body, color: colors.textMuted },
-  chipTxtSelected: { color: colors.primary, fontWeight: '700' },
+  chipTxtSelected: { color: colors.primaryBright, fontWeight: '700' },
   primaryBtn: {
     backgroundColor: colors.primary,
     borderRadius: radii.md,
@@ -392,6 +498,27 @@ const s = StyleSheet.create({
     marginTop: spacing.xs,
   },
   disabled: { opacity: 0.6 },
-  errorTxt: { ...typography.caption, color: colors.danger, marginTop: spacing.sm },
-  okTxt: { ...typography.caption, color: colors.success, marginTop: spacing.sm },
+  manageBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 40,
+    borderColor: 'rgba(77, 141, 255, 0.45)',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.pill,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.primaryTint,
+  },
+  manageTxt: { ...typography.label, color: colors.primaryBright, fontWeight: '600' },
+  historySection: { marginTop: spacing.md },
+  historyItem: {
+    borderTopColor: colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  historyTitle: { ...typography.label, textTransform: 'capitalize' },
+  errorTxt: { ...typography.caption, color: colors.dangerText, marginTop: spacing.sm },
+  okTxt: { ...typography.caption, color: colors.successText, marginTop: spacing.sm },
 });

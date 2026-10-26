@@ -188,14 +188,6 @@ function VehiclePage({
               />
             )}
           </View>
-          <Text style={s.stageType} numberOfLines={1}>
-            {caption}
-          </Text>
-          {/* The plate line is always present so the stage height never changes between a
-              vehicle with a plate and one without. */}
-          <Text style={s.stagePlate} numberOfLines={1}>
-            {vehicle.plate ?? ''}
-          </Text>
         </View>
       </GlassSurface>
     </Animated.View>
@@ -294,7 +286,7 @@ const DOT_PITCH = 16;
 // The vehicle frame's height. Every vehicle gets the same one, whatever the artwork's own
 // aspect ratio, so the carousel pages stay the same size and the vehicle never changes scale
 // from one page to the next.
-const VEHICLE_FRAME_HEIGHT = 168;
+const VEHICLE_FRAME_HEIGHT = 181;
 
 const s = StyleSheet.create({
   root: { marginBottom: spacing.md },
@@ -305,26 +297,26 @@ const s = StyleSheet.create({
   stageInner: {
     alignItems: 'center',
     paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.md,
+    paddingVertical: spacing.xxl,
   },
   vehicleFrame: {
     width: '100%',
-    maxWidth: 320,
+    maxWidth: 1000,
     height: VEHICLE_FRAME_HEIGHT,
     // Breathing room so protruding parts — mirrors, bars, wheels — never touch the frame edge.
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
   vehicleImage: {
-    width: '100%',
-    height: '100%',
+    width: '150%',
+    height: '150%',
     // `contain`, never `cover`: the vehicle keeps its own proportions and the showroom
     // backdrop stays visible through the transparent parts of the artwork.
     resizeMode: 'contain',
   },
-  scrimBase: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(5, 7, 13, 0.42)' },
+  scrimBase: { ...StyleSheet.absoluteFill, backgroundColor: 'rgba(0, 64, 255, 0)' },
   scrimBand: { position: 'absolute', left: 0, right: 0, height: SCRIM_BAND_HEIGHT },
   stageType: { ...typography.heading, fontSize: 16, textAlign: 'center', marginTop: spacing.sm },
   stagePlate: { ...typography.caption, textAlign: 'center', marginTop: spacing.xs, letterSpacing: 1.5 },

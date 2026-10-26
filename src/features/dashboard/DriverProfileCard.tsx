@@ -1,47 +1,43 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Animated,
   Easing,
   Image,
+  ImageBackground,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
   useWindowDimensions,
   type LayoutChangeEvent,
+  type ViewStyle,
+  type TextStyle,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import {
   buildDriverProfileView,
-  DRIVER_PROFILE_EMPTY_FIELD,
   type DriverProfile,
   type DriverProfileView,
 } from '../../domain/driverProfile/profile';
 import type { WalletDoc } from '../../domain/dashboard/wallet';
-import { colors, fonts, motion, radii, spacing, typography } from '../../ui/theme';
+import { colors, motion, radii, spacing, typography } from '../../ui/theme';
+import {
+  LICENSE_BACK,
+  LICENSE_FRONT,
+  CARD_ASPECT_RATIO,
+  licenseCardLayout,
+  type TextOverlayConfig,
+} from './licenseCardLayout';
 
 type Props = {
   doc: WalletDoc;
   profile: DriverProfile | null;
-  /** True when the local read failed; the card still renders with empty states. */
   profileUnavailable?: boolean;
   onEditProfile: () => void;
 };
 
-// Credit-card proportions keep the profile card landscape on every Android width. Everything
-// inside scales from the measured width instead of from a fixed pixel height, so the content
-// does not clip on small screens or look stranded on large ones.
-const CARD_ASPECT_RATIO = 1.586;
 const BASE_WIDTH = 320;
-
-const CARD_BG = '#0C1728';
-const CARD_BG_RAISED = '#12233D';
-const CARD_BORDER = 'rgba(125, 165, 235, 0.26)';
-const CARD_TEXT = colors.text;
-const CARD_MUTED = '#9FB1CF';
-const CARD_FAINT = '#6F84A8';
-const CARD_ACCENT = colors.primaryBright;
 
 export default function DriverProfileCard({ doc, profile, profileUnavailable, onEditProfile }: Props) {
   const window = useWindowDimensions();
@@ -52,8 +48,6 @@ export default function DriverProfileCard({ doc, profile, profileUnavailable, on
 
   useEffect(() => {
     let alive = true;
-    // Same defensive probe used by the original wallet card: not every RN version exposes the
-    // reduced-motion flag, and when it is unavailable the flip simply animates.
     const info = AccessibilityInfo as unknown as {
       isReduceMotionEnabled?: () => Promise<boolean>;
       addEventListener?: (event: string, handler: (value: boolean) => void) => { remove: () => void };
@@ -100,7 +94,6 @@ export default function DriverProfileCard({ doc, profile, profileUnavailable, on
   const unit = width / BASE_WIDTH;
   const height = width / CARD_ASPECT_RATIO;
   const view = buildDriverProfileView(profile);
-  const expiry = profile?.expiration_date ? view.expirationDate : doc.expiryText;
 
   return (
     <View style={s.root} onLayout={onLayout}>
@@ -108,7 +101,7 @@ export default function DriverProfileCard({ doc, profile, profileUnavailable, on
         onPress={toggle}
         activeOpacity={0.88}
         accessibilityRole="button"
-        accessibilityLabel={`Personal driver profile${view.isComplete ? ` for ${view.name}` : ''}. ${expiry}.`}
+        accessibilityLabel={`Personal driver profile${view.isComplete ? ` for ${view.name}` : ''}.`}
         accessibilityHint={back ? 'Shows the front of the profile card' : 'Shows the back of the profile card'}
         accessibilityState={{ expanded: back }}
         style={[s.flipWrap, { height }]}
@@ -119,7 +112,7 @@ export default function DriverProfileCard({ doc, profile, profileUnavailable, on
           accessibilityElementsHidden={back}
           importantForAccessibility={back ? 'no-hide-descendants' : 'auto'}
         >
-          <ProfileFront view={view} expiry={expiry} unit={unit} unavailable={!!profileUnavailable} />
+          <ProfileFrontTemplate view={view} profile={profile} unit={unit} />
         </Animated.View>
         <Animated.View
           style={[s.face, s.back, { transform: [{ perspective: 1000 }, { rotateY: backRotate }] }]}
@@ -127,7 +120,7 @@ export default function DriverProfileCard({ doc, profile, profileUnavailable, on
           accessibilityElementsHidden={!back}
           importantForAccessibility={back ? 'auto' : 'no-hide-descendants'}
         >
-          <ProfileBack view={view} expiry={expiry} unit={unit} />
+          <ProfileBackTemplate view={view} profile={profile} unit={unit} />
         </Animated.View>
       </TouchableOpacity>
 
@@ -154,204 +147,141 @@ export default function DriverProfileCard({ doc, profile, profileUnavailable, on
   );
 }
 
-function ProfileFront({
-  view,
-  expiry,
+function OverlayText({
+  text,
+  config,
   unit,
-  unavailable,
+}: {
+  text: string;
+  config: TextOverlayConfig;
+  unit: number;
+}) {
+  if (!text) return null;
+  const fs = (base?: number) => (base || 12) * unit * 0.78;
+  const style: TextStyle = {
+    position: 'absolute',
+    left: `${config.left}%` as any,
+    top: `${config.top}%` as any,
+    width: config.width != null ? (`${config.width}%` as any) : undefined,
+    fontSize: fs(config.fontSize),
+    lineHeight: config.lineHeight ? config.lineHeight * unit * 0.78 : undefined,
+    color: config.color || '#000000',
+    fontWeight: config.fontWeight as any,
+    textAlign: config.textAlign || 'left',
+    letterSpacing: config.letterSpacing != null ? config.letterSpacing * unit : undefined,
+    backgroundColor: 'transparent',
+  };
+  return (
+    <Text style={style} numberOfLines={config.numberOfLines || 1} ellipsizeMode="tail">
+      {text}
+    </Text>
+  );
+}
+
+function ProfileFrontTemplate({
+  view,
+  profile,
+  unit,
 }: {
   view: DriverProfileView;
-  expiry: string;
+  profile: DriverProfile | null;
   unit: number;
-  unavailable: boolean;
 }) {
-  const fs = (size: number) => size * unit;
   const [portraitFailed, setPortraitFailed] = useState(false);
   useEffect(() => {
     setPortraitFailed(false);
   }, [view.portraitUri]);
+
+  const layout = licenseCardLayout.front;
+  const fullName = profile?.full_name?.trim() || '';
+  const nationality = profile?.nationality?.trim() || '';
+  const sex = profile?.sex?.trim() || '';
+  const dateOfBirth = profile?.date_of_birth?.trim() || '';
+  const weight = profile?.weight_kg != null ? String(profile.weight_kg) : '';
+  const height = profile?.height_m  != null ? String(profile.height_m)  : '';
+  const address = profile?.address?.trim() || '';
+  const licenseNumber = profile?.license_number?.trim() || '';
+  const expirationDate = profile?.expiration_date?.trim() || '';
+  const agencyCode = profile?.agency_code?.trim() || '';
+  const bloodType = profile?.blood_type?.trim() || '';
+  const eyeColor = profile?.eye_color?.trim() || '';
+  const licenseCodes = profile?.license_codes?.trim() || '';
+  const conditions = profile?.conditions?.trim() || '';
+
+  const portraitCfg = layout.portrait;
+
   return (
-    <View style={[s.frontInner, { padding: fs(13) }]}>
-      <View
-        pointerEvents="none"
-        style={[
-          s.decorCircle,
-          { width: unit * 190, height: unit * 190, borderRadius: unit * 95, right: unit * -55, top: unit * -80 },
-        ]}
-      />
-      <View
-        pointerEvents="none"
-        style={[
-          s.decorLine,
-          { width: unit * 240, height: unit * 2, right: unit * -60, bottom: unit * 30 },
-        ]}
-      />
+    <View style={s.templateContainer}>
+      <ImageBackground source={LICENSE_FRONT} style={s.templateImage} resizeMode="cover">
+        {fullName ? <OverlayText text={fullName} config={layout.fields.fullName} unit={unit} /> : null}
+        {nationality ? <OverlayText text={nationality} config={layout.fields.nationality} unit={unit} /> : null}
+        {sex ? <OverlayText text={sex} config={layout.fields.sex} unit={unit} /> : null}
+        {dateOfBirth ? <OverlayText text={dateOfBirth} config={layout.fields.dateOfBirth} unit={unit} /> : null}
+        {weight ? <OverlayText text={weight} config={layout.fields.weight} unit={unit} /> : null}
+        {height ? <OverlayText text={height} config={layout.fields.height} unit={unit} /> : null}
+        {address ? <OverlayText text={address} config={layout.fields.address} unit={unit} /> : null}
+        {licenseNumber ? <OverlayText text={licenseNumber} config={layout.fields.licenseNumber} unit={unit} /> : null}
+        {expirationDate ? <OverlayText text={expirationDate} config={layout.fields.expirationDate} unit={unit} /> : null}
+        {agencyCode ? <OverlayText text={agencyCode} config={layout.fields.agencyCode} unit={unit} /> : null}
+        {bloodType ? <OverlayText text={bloodType} config={layout.fields.bloodType} unit={unit} /> : null}
+        {eyeColor ? <OverlayText text={eyeColor} config={layout.fields.eyeColor} unit={unit} /> : null}
+        {licenseCodes ? <OverlayText text={licenseCodes} config={layout.fields.licenseCodes} unit={unit} /> : null}
+        {conditions ? <OverlayText text={conditions} config={layout.fields.conditions} unit={unit} /> : null}
 
-      <View style={s.topRow}>
-        <View>
-          <Text style={[s.wordmark, { fontSize: fs(11), letterSpacing: fs(2) }]}>VEHITRA</Text>
-          <Text style={[s.kicker, { fontSize: fs(6.5), letterSpacing: fs(1.2) }]}>PERSONAL DRIVER RECORD</Text>
-        </View>
-        <View style={[s.badge, { paddingHorizontal: fs(5), paddingVertical: fs(3), borderRadius: fs(4) }]}>
-          <Text style={[s.badgeTxt, { fontSize: fs(5.5), letterSpacing: fs(0.5) }]}>
-            {unavailable ? 'PROFILE UNAVAILABLE' : 'NOT AN OFFICIAL LICENCE'}
-          </Text>
-        </View>
-      </View>
-
-      <View style={[s.bodyRow, { marginTop: fs(7) }]}>
-        <View style={[s.bodyLeft, { paddingRight: fs(9) }]}>
-          <Text
-            style={[s.name, { fontSize: fs(17.5), lineHeight: fs(20) }]}
-            numberOfLines={2}
-            accessibilityLabel={`Name: ${view.name}`}
+        {view.portraitUri && !portraitFailed ? (
+          <View
+            style={[
+              s.portraitOverlay,
+              {
+                left: `${portraitCfg.left}%` as any,
+                top: `${portraitCfg.top}%` as any,
+                width: `${portraitCfg.width}%` as any,
+                height: `${portraitCfg.height}%` as any,
+                borderRadius: portraitCfg.borderRadius || 0,
+              },
+            ]}
           >
-            {view.name}
-          </Text>
-          <Text style={[s.subtitle, { fontSize: fs(7.2), marginTop: fs(2) }]} numberOfLines={1}>
-            {view.subtitle}
-          </Text>
-          <Text style={[s.address, { fontSize: fs(7.2), lineHeight: fs(9.4), marginTop: fs(4) }]} numberOfLines={2}>
-            {view.address}
-          </Text>
-
-          <View style={[s.bottomBlock, { marginTop: fs(7) }]}>
-            <View style={s.fieldRow}>
-              <MiniField label="LICENCE NO." value={view.licenseNumber} unit={unit} flex={1.15} />
-              <MiniField label="EXPIRES" value={expiry} unit={unit} flex={1} />
-              <MiniField label="AGENCY" value={view.agencyCode} unit={unit} flex={0.75} />
-            </View>
-            <View style={[s.fieldRow, { marginTop: fs(4) }]}>
-              <MiniField label="BLOOD" value={view.bloodType} unit={unit} flex={0.7} />
-              <MiniField label="EYES" value={view.eyeColor} unit={unit} flex={0.9} />
-              <MiniField label="WEIGHT / HEIGHT" value={view.physical} unit={unit} flex={1.4} />
-            </View>
-          </View>
-        </View>
-
-        <View
-          style={[
-            s.portraitFrame,
-            {
-              width: fs(66),
-              height: fs(88),
-              borderRadius: fs(7),
-              borderWidth: Math.max(1, fs(1)),
-            },
-          ]}
-        >
-          {view.portraitUri && !portraitFailed ? (
             <Image
               source={{ uri: view.portraitUri }}
-              style={s.portraitImage}
+              style={s.portraitImg}
               resizeMode="cover"
               onError={() => setPortraitFailed(true)}
-              accessibilityLabel={view.isComplete ? `Portrait of ${view.name}` : 'Profile portrait'}
+              accessibilityLabel={view.isComplete ? 'Portrait of ' + view.name : 'Profile portrait'}
             />
-          ) : (
-            <View style={s.portraitEmpty}>
-              <Ionicons name="person-outline" size={fs(22)} color={CARD_FAINT} />
-              <Text style={[s.portraitHint, { fontSize: fs(5.8), marginTop: fs(3) }]}>
-                {view.portraitUri ? 'PHOTO UNAVAILABLE' : 'ADD PHOTO'}
-              </Text>
-            </View>
-          )}
-        </View>
-      </View>
-
-      <View style={[s.cardFooter, { marginTop: 'auto', paddingTop: fs(5) }]}>
-        <Text style={[s.footerTxt, { fontSize: fs(6.2) }]} numberOfLines={1}>
-          {view.licenseCodes === DRIVER_PROFILE_EMPTY_FIELD
-            ? 'PERSONAL DIGITAL RECORD'
-            : `CODES ${view.licenseCodes}`}
-        </Text>
-        <Text style={[s.footerTxt, { fontSize: fs(6.2) }]}>TAP TO FLIP</Text>
-      </View>
+          </View>
+        ) : null}
+      </ImageBackground>
     </View>
   );
 }
 
-function ProfileBack({ view, expiry, unit }: { view: DriverProfileView; expiry: string; unit: number }) {
-  const fs = (size: number) => size * unit;
-  return (
-    <View style={[s.backInner, { padding: fs(13) }]}>
-      <View style={s.topRow}>
-        <View>
-          <Text style={[s.wordmark, { fontSize: fs(10), letterSpacing: fs(1.8) }]}>VEHITRA</Text>
-          <Text style={[s.kicker, { fontSize: fs(6.2), letterSpacing: fs(1) }]}>PERSONAL DRIVER RECORD · BACK</Text>
-        </View>
-        <Text style={[s.name, { fontSize: fs(11), flexShrink: 1, textAlign: 'right' }]} numberOfLines={1}>
-          {view.name}
-        </Text>
-      </View>
-
-      <Text style={[s.disclaimer, { fontSize: fs(6.2), lineHeight: fs(8), marginTop: fs(5) }]}>
-        This is a personal digital record kept on this device. It is not a government-issued
-        licence and cannot replace an official driver licence.
-      </Text>
-
-      <View style={[s.backGrid, { marginTop: fs(6) }]}>
-        <View style={s.backRow}>
-          <MiniField label="ADDRESS" value={view.address} unit={unit} flex={1.7} lines={2} />
-          <MiniField label="CONDITIONS / RESTRICTIONS" value={view.conditions} unit={unit} flex={1.3} lines={2} />
-        </View>
-        <View style={[s.backRow, { marginTop: fs(5) }]}>
-          <MiniField label="LICENCE NO." value={view.licenseNumber} unit={unit} flex={1} />
-          <MiniField label="EXPIRES" value={expiry} unit={unit} flex={1} />
-          <MiniField label="AGENCY" value={view.agencyCode} unit={unit} flex={0.7} />
-        </View>
-        <View style={[s.backRow, { marginTop: fs(5) }]}>
-          <MiniField label="DRIVER CODES" value={view.licenseCodes} unit={unit} flex={1.4} />
-          <MiniField label="BLOOD / EYES" value={fieldPair(view.bloodType, view.eyeColor)} unit={unit} flex={1} />
-          <MiniField label="WEIGHT / HEIGHT" value={view.physical} unit={unit} flex={1} />
-        </View>
-      </View>
-
-      <View style={[s.cardFooter, { marginTop: 'auto', paddingTop: fs(5) }]}>
-        <Text style={[s.footerTxt, { fontSize: fs(6.2) }]}>STORED ONLY ON THIS DEVICE</Text>
-        <Text style={[s.footerTxt, { fontSize: fs(6.2) }]}>TAP TO FLIP</Text>
-      </View>
-    </View>
-  );
-}
-
-function fieldPair(first: string, second: string): string {
-  const firstEmpty = first === DRIVER_PROFILE_EMPTY_FIELD;
-  const secondEmpty = second === DRIVER_PROFILE_EMPTY_FIELD;
-  if (firstEmpty && secondEmpty) return DRIVER_PROFILE_EMPTY_FIELD;
-  if (firstEmpty) return second;
-  if (secondEmpty) return first;
-  return `${first} / ${second}`;
-}
-
-function MiniField({
-  label,
-  value,
+function ProfileBackTemplate({
+  view,
+  profile,
   unit,
-  flex,
-  lines = 1,
 }: {
-  label: string;
-  value: string;
+  view: DriverProfileView;
+  profile: DriverProfile | null;
   unit: number;
-  flex: number;
-  lines?: number;
 }) {
-  const empty = value === DRIVER_PROFILE_EMPTY_FIELD;
+  const layout = licenseCardLayout.back;
+  const address = profile?.address?.trim() || '';
+  const licenseNumber = profile?.license_number?.trim() || '';
+  const expirationDate = profile?.expiration_date?.trim() || '';
+  const agencyCode = profile?.agency_code?.trim() || '';
+  const licenseCodes = profile?.license_codes?.trim() || '';
+  const conditions = profile?.conditions?.trim() || '';
+
   return (
-    <View style={{ flex, minWidth: 0 }}>
-      <Text
-        style={[s.fieldLabel, { fontSize: 6 * unit, letterSpacing: 0.45 * unit }]}
-        numberOfLines={1}
-      >
-        {label}
-      </Text>
-      <Text
-        style={[s.fieldValue, empty && s.fieldEmpty, { fontSize: 8.2 * unit, lineHeight: 9.8 * unit }]}
-        numberOfLines={lines}
-      >
-        {value}
-      </Text>
+    <View style={s.templateContainer}>
+      <ImageBackground source={LICENSE_BACK} style={s.templateImage} resizeMode="cover">
+        {address ? <OverlayText text={address} config={layout.fields.address} unit={unit} /> : null}
+        {licenseNumber ? <OverlayText text={licenseNumber} config={layout.fields.licenseNumber} unit={unit} /> : null}
+        {expirationDate ? <OverlayText text={expirationDate} config={layout.fields.expirationDate} unit={unit} /> : null}
+        {agencyCode ? <OverlayText text={agencyCode} config={layout.fields.agencyCode} unit={unit} /> : null}
+        {licenseCodes ? <OverlayText text={licenseCodes} config={layout.fields.licenseCodes} unit={unit} /> : null}
+        {conditions ? <OverlayText text={conditions} config={layout.fields.conditions} unit={unit} /> : null}
+      </ImageBackground>
     </View>
   );
 }
@@ -368,62 +298,33 @@ const s = StyleSheet.create({
     borderRadius: radii.lg,
     overflow: 'hidden',
     backfaceVisibility: 'hidden',
-    // Android needs the slight lift for the 3D flip to read as rotation rather than a squash.
     elevation: 2,
   },
-  front: { backgroundColor: CARD_BG, borderWidth: 1, borderColor: CARD_BORDER },
-  back: { backgroundColor: CARD_BG_RAISED, borderWidth: 1, borderColor: CARD_BORDER },
-  frontInner: { flex: 1 },
-  backInner: { flex: 1 },
-  decorCircle: {
+  front: { backgroundColor: '#ffffff' },
+  back: { backgroundColor: '#ffffff' },
+  templateContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  templateImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlayText: {
     position: 'absolute',
-    backgroundColor: 'rgba(77, 141, 255, 0.10)',
+    backgroundColor: 'transparent',
   },
-  decorLine: {
+  portraitOverlay: {
     position: 'absolute',
-    backgroundColor: 'rgba(77, 141, 255, 0.20)',
-    transform: [{ rotate: '-18deg' }],
-  },
-  topRow: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: spacing.sm },
-  wordmark: { fontFamily: fonts.display, color: CARD_TEXT },
-  kicker: { fontFamily: fonts.display, color: CARD_MUTED, marginTop: 1 },
-  badge: {
-    borderWidth: 1,
-    borderColor: 'rgba(159, 177, 207, 0.45)',
-    backgroundColor: 'rgba(9, 19, 34, 0.65)',
-    maxWidth: '52%',
-  },
-  badgeTxt: { fontFamily: fonts.display, color: CARD_MUTED, textAlign: 'center' },
-  bodyRow: { flexDirection: 'row', flex: 1, minHeight: 0 },
-  bodyLeft: { flex: 1, minWidth: 0 },
-  name: { fontFamily: fonts.display, color: CARD_TEXT, letterSpacing: 0.2 },
-  subtitle: { color: CARD_TEXT, fontWeight: '600' },
-  address: { color: CARD_MUTED },
-  bottomBlock: { justifyContent: 'flex-end' },
-  fieldRow: { flexDirection: 'row', gap: 6 },
-  fieldLabel: { fontFamily: fonts.display, color: CARD_FAINT, textTransform: 'uppercase' },
-  fieldValue: { color: CARD_TEXT, fontWeight: '600' },
-  fieldEmpty: { color: CARD_FAINT, fontWeight: '400' },
-  portraitFrame: {
-    borderColor: 'rgba(159, 177, 207, 0.45)',
-    backgroundColor: 'rgba(9, 19, 34, 0.7)',
     overflow: 'hidden',
-    alignSelf: 'flex-start',
+    backgroundColor: 'transparent',
   },
-  portraitImage: { width: '100%', height: '100%' },
-  portraitEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 4 },
-  portraitHint: { fontFamily: fonts.display, color: CARD_FAINT, letterSpacing: 0.8 },
-  cardFooter: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: 'rgba(159, 177, 207, 0.22)',
+  portraitImg: {
+    width: '100%',
+    height: '100%',
   },
-  footerTxt: { fontFamily: fonts.display, color: CARD_FAINT, letterSpacing: 0.6, flexShrink: 1 },
-  disclaimer: { color: CARD_MUTED },
-  backGrid: { flex: 1 },
-  backRow: { flexDirection: 'row', gap: 7 },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',

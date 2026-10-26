@@ -93,11 +93,9 @@ export default function GlassSurface({ children, style, intensity = DEFAULT_BLUR
             style={fill}
             pointerEvents="none"
           />
-          <View style={s.tint} pointerEvents="none" />
         </>
       ) : (
-        // Opaque base so the surface stays legible with no blur available. The white-5% fill is
-        // composited onto the raised surface colour to land close to the blurred result.
+        // Opaque base so the surface stays legible with no blur available.
         <View style={s.fallback} pointerEvents="none" />
       )}
       <View style={s.content}>{children}</View>
@@ -120,7 +118,6 @@ export default function GlassSurface({ children, style, intensity = DEFAULT_BLUR
       overflow: 'hidden',
     },
   fallback: { ...fill, backgroundColor: colors.surfaceRaised },
-  tint: { ...fill, backgroundColor: colors.glassFill },
   // The two gradient hairlines. `GlassEdges` draws each as a 1px strip of flex segments, so
   // the strips must be absolutely positioned to stay out of the content flow.
   edgeTop: { position: 'absolute', top: 0, left: 0, right: 0, height: 1, flexDirection: 'row' },

@@ -9,6 +9,8 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { getDb } from '../../data/local/db';
 import {
   getActiveVehicle,
@@ -22,7 +24,9 @@ import { getComponentDefinition } from '../../domain/maintenance/components';
 import { distanceUnit, KM_PER_MILE } from '../../domain/units';
 import Screen from '../../ui/Screen';
 import Placeholder from '../../ui/Placeholder';
+import GlassSurface from '../../ui/GlassSurface';
 import { colors, radii, spacing, typography } from '../../ui/theme';
+import { tabBarBottomClearance } from '../../ui/tabBarLayout';
 import type { RootTabParamList } from '../../app/RootNavigator';
 import { usePrefs } from '../../app/prefs';
 import ComponentManagePanel from './ComponentManagePanel';
@@ -41,14 +45,33 @@ import {
   type StatusTone,
 } from './partsView';
 
+const PARTS_BG = require('../../../assets/appBG.jpg');
+
 type Props = BottomTabScreenProps<RootTabParamList, 'Parts'>;
 
 const TONE_COLORS: Record<StatusTone, string> = {
-  good: colors.success,
+  good: colors.successText,
   due: colors.warningText,
-  overdue: colors.danger,
+  overdue: colors.dangerText,
   unknown: colors.textMuted,
   off: colors.textMuted,
+};
+
+const TONE_PILL: Record<StatusTone, { bg: string; border: string }> = {
+  good: { bg: 'rgba(95, 211, 122, 0.12)', border: 'rgba(95, 211, 122, 0.35)' },
+  due: { bg: 'rgba(242, 200, 121, 0.12)', border: 'rgba(242, 200, 121, 0.35)' },
+  overdue: { bg: 'rgba(248, 113, 113, 0.14)', border: 'rgba(248, 113, 113, 0.38)' },
+  unknown: { bg: 'rgba(255, 255, 255, 0.05)', border: colors.glassBorder },
+  off: { bg: 'rgba(255, 255, 255, 0.05)', border: colors.glassBorder },
+};
+
+const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
+  engine: 'cog-outline',
+  fluids: 'water-outline',
+  brakes: 'stop-circle-outline',
+  wheels_tires: 'disc-outline',
+  electrical: 'flash-outline',
+  transmission: 'git-branch-outline',
 };
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -61,8 +84,7 @@ const typeLabel = (v: VehicleRow) =>
 // re-reads after each write. Summary counts are deliberately vehicle-wide (over the whole component
 // list) even while the search box filters the cards below, so the overview never changes with search.
 export default function PartsScreen({ navigation }: Props) {
-  const prefs = usePrefs();
-  const units = prefs.units;
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [vehicle, setVehicle] = useState<VehicleRow | null>(null);
@@ -108,17 +130,24 @@ export default function PartsScreen({ navigation }: Props) {
   const filtered = useMemo(() => items.filter((i) => matchesQuery(i, query)), [items, query]);
 
   return (
-    <Screen title="Parts" subtitle="Maintenance overview" keyboardShouldPersistTaps="handled">
+    <Screen
+      title="Parts"
+      subtitle="Maintenance overview"
+      keyboardShouldPersistTaps="handled"
+      contentStyle={{ paddingBottom: tabBarBottomClearance(insets.bottom) + spacing.lg }}
+      backgroundImage={PARTS_BG}
+      backgroundImageStyle={s.bgImage}
+    >
       {loading ? (
         <ActivityIndicator color={colors.primary} style={s.loading} />
       ) : error ? (
-        <View style={[s.card, s.errorCard]}>
+        <GlassSurface style={[s.card, s.errorCard]}>
           <Text style={s.cardTitle}>Could not read maintenance</Text>
           <Text style={s.muted}>{error}</Text>
           <TouchableOpacity style={s.btnGhost} onPress={() => void load()} accessibilityRole="button">
             <Text style={s.btnGhostTxt}>Retry</Text>
           </TouchableOpacity>
-        </View>
+        </GlassSurface>
       ) : !vehicle ? (
         <>
           <Placeholder
@@ -135,19 +164,31 @@ export default function PartsScreen({ navigation }: Props) {
         </>
       ) : (
         <>
-          <View style={s.vehicleCard}>
-            <Text style={s.kicker}>{typeLabel(vehicle)}</Text>
-            <Text style={s.cardTitle}>{vehicleDisplayName(vehicle)}</Text>
+          <GlassSurface style={s.vehicleCard}>
+            <View style={s.vehicleHead}>
+              <View style={s.vehicleText}>
+                <Text style={s.kicker}>{typeLabel(vehicle)}</Text>
+                <Text style={s.vehicleTitle} numberOfLines={2}>
+                  {vehicleDisplayName(vehicle)}
+                </Text>
+              </View>
+              <View style={s.vehicleIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                <Ionicons name="build-outline" size={22} color={colors.primaryBright} />
+              </View>
+            </View>
             <OdometerEditor
               key={vehicle.id}
               vehicleId={vehicle.id}
               currentKm={vehicle.odometer_km}
               onSaved={load}
             />
-          </View>
+          </GlassSurface>
 
-          <View style={s.card}>
-            <Text style={s.cardTitle}>Overview</Text>
+          <GlassSurface style={s.card}>
+            <View style={s.sectionHead}>
+              <Text style={s.sectionTitle}>Overview</Text>
+              <Text style={s.sectionMeta}>{counts.total} components</Text>
+            </View>
             <View style={s.metrics}>
               <Stat value={counts.good} label="Good" tone="good" />
               <Stat value={counts.due_soon} label="Due soon" tone="due" />
@@ -162,18 +203,37 @@ export default function PartsScreen({ navigation }: Props) {
                 Unknown means there is not enough recorded history yet — it is not a pass.
               </Text>
             )}
-          </View>
+          </GlassSurface>
 
-          <TextInput
-            style={s.input}
-            value={query}
-            onChangeText={setQuery}
-            placeholder="Search components"
-            placeholderTextColor={colors.textMuted}
-            autoCapitalize="none"
-            autoCorrect={false}
-            accessibilityLabel="Search components by name or code"
-          />
+          <View style={s.searchWrap}>
+            <Ionicons
+              name="search-outline"
+              size={18}
+              color={colors.textMuted}
+              accessibilityElementsHidden
+              importantForAccessibility="no-hide-descendants"
+            />
+            <TextInput
+              style={s.searchInput}
+              value={query}
+              onChangeText={setQuery}
+              placeholder="Search components"
+              placeholderTextColor={colors.textMuted}
+              autoCapitalize="none"
+              autoCorrect={false}
+              accessibilityLabel="Search components by name or code"
+            />
+            {query.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setQuery('')}
+                accessibilityRole="button"
+                accessibilityLabel="Clear search"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
 
           {items.length === 0 ? (
             <Placeholder
@@ -248,14 +308,21 @@ function OdometerEditor({
     }
   };
 
+  const shown = currentKm != null
+    ? formatKm(units === 'imperial' ? currentKm / KM_PER_MILE : currentKm)
+    : '—';
+
   return (
     <View style={s.odo}>
-      <Text style={s.muted}>
-        Current odometer:{' '}
-        {currentKm != null
-          ? `${formatKm(units === 'imperial' ? currentKm / KM_PER_MILE : currentKm)} ${distanceUnit(units)}`
-          : 'not set'}
-      </Text>
+      <View style={s.odoDisplay}>
+        <Text style={s.odoLabel}>Current odometer</Text>
+        <View style={s.odoValueRow}>
+          <Text style={s.odoValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
+            {shown}
+          </Text>
+          <Text style={s.odoUnit}>{distanceUnit(units)}</Text>
+        </View>
+      </View>
       <View style={s.odoRow}>
         <TextInput
           style={[s.input, s.flexInput]}
@@ -288,8 +355,11 @@ function OdometerEditor({
 
 function Stat({ value, label, tone }: { value: number; label: string; tone: StatusTone }) {
   return (
-    <View style={s.metric}>
-      <Text style={[s.metricValue, { color: TONE_COLORS[tone] }]}>{value}</Text>
+    <View style={s.metric} accessible accessibilityLabel={`${label}: ${value}`}>
+      <View style={s.metricDotRow}>
+        <View style={[s.metricDot, { backgroundColor: TONE_COLORS[tone] }]} />
+        <Text style={[s.metricValue, { color: TONE_COLORS[tone] }]}>{value}</Text>
+      </View>
       <Text style={s.metricLabel}>{label}</Text>
     </View>
   );
@@ -319,16 +389,32 @@ function ComponentCard({
   const source = progress && evaluation.rule ? intervalSourceNote(evaluation.rule.source) : null;
   const allowedActions = getComponentDefinition(item.componentCode)?.allowedActions ?? [];
 
+  const pill = TONE_PILL[tone];
+  const icon = CATEGORY_ICONS[item.category] ?? 'build-outline';
+
   return (
-    <View style={[s.card, tone === 'overdue' && s.cardOverdue]}>
+    <GlassSurface style={[s.card, tone === 'overdue' && s.cardOverdue]}>
       <View style={s.cardHead}>
+        <View style={[s.categoryIcon, { borderColor: pill.border, backgroundColor: pill.bg }]}>
+          <Ionicons
+            name={icon}
+            size={18}
+            color={toneColor}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
+        </View>
         <View style={s.cardText}>
           <Text style={s.cardTitle}>{item.name}</Text>
           <Text style={s.code}>
             {categoryLabel(item.category)} · {item.componentCode}
           </Text>
         </View>
-        <View style={[s.badge, { borderColor: toneColor }]}>
+        <View
+          style={[s.badge, { borderColor: pill.border, backgroundColor: pill.bg }]}
+          accessible
+          accessibilityLabel={`Status: ${STATUS_LABELS[evaluation.status]}`}
+        >
           <Text style={[s.badgeTxt, { color: toneColor }]}>{STATUS_LABELS[evaluation.status]}</Text>
         </View>
       </View>
@@ -345,9 +431,9 @@ function ComponentCard({
               style={[s.fill, { width: `${progressFraction(progress.usedPercent) * 100}%`, backgroundColor: toneColor }]}
             />
           </View>
-            <Text style={s.muted}>
-              {usageLine(progress.usedKm, progress.intervalKm, progress.remainingKm, units)}
-            </Text>
+          <Text style={s.muted}>
+            {usageLine(progress.usedKm, progress.intervalKm, progress.remainingKm, units)}
+          </Text>
           {source && <Text style={s.note}>{source}</Text>}
         </>
       ) : (
@@ -355,13 +441,21 @@ function ComponentCard({
       )}
 
       <TouchableOpacity
-        style={s.manageBtn}
+        style={[s.manageBtn, expanded && s.manageBtnActive]}
         onPress={onToggle}
+        activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityState={{ expanded }}
         accessibilityLabel={`Manage ${item.name}`}
       >
         <Text style={s.manageTxt}>{expanded ? 'Close' : 'Manage'}</Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={14}
+          color={colors.primaryBright}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        />
       </TouchableOpacity>
 
       {expanded && (
@@ -374,44 +468,118 @@ function ComponentCard({
           onSaved={onSaved}
         />
       )}
-    </View>
+    </GlassSurface>
   );
 }
 
 const s = StyleSheet.create({
-  loading: { marginTop: spacing.xl },
-  vehicleCard: {
-    backgroundColor: colors.surface,
-    borderColor: colors.primary,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.md,
-    padding: spacing.lg,
+  bgImage: {
+    transform: [{ scale: 0.4 }, { translateX: -1440 }, { translateY: -2550 }],
+    opacity: 0.9,
   },
-  odo: { marginTop: spacing.md, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, paddingTop: spacing.md },
-  odoRow: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.sm },
+  loading: { marginTop: spacing.xl },
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.md,
     padding: spacing.lg,
     marginTop: spacing.md,
   },
-  cardOverdue: { borderColor: colors.danger },
+  cardOverdue: { borderColor: 'rgba(248, 113, 113, 0.45)' },
   errorCard: { borderColor: colors.danger },
-  kicker: { ...typography.caption, color: colors.primary, letterSpacing: 1.5, fontWeight: '700' },
-  cardHead: { flexDirection: 'row', alignItems: 'flex-start' },
-  cardText: { flex: 1 },
-  cardTitle: { ...typography.heading, fontSize: 16, marginTop: spacing.xs },
-  code: { ...typography.caption, marginTop: spacing.xs },
-  muted: { ...typography.body, color: colors.textMuted, lineHeight: 20 },
+  cardTitle: { ...typography.heading, fontSize: 16 },
+  muted: { ...typography.body, color: colors.textMuted, lineHeight: 20, marginTop: spacing.sm },
   note: { ...typography.caption, lineHeight: 18, marginTop: spacing.sm },
-  metrics: { flexDirection: 'row', marginTop: spacing.md },
-  metric: { flex: 1 },
-  metricValue: { ...typography.title, fontSize: 22 },
-  metricLabel: { ...typography.caption, marginTop: spacing.xs },
+
+  vehicleCard: { padding: spacing.lg },
+  vehicleHead: { flexDirection: 'row', alignItems: 'flex-start' },
+  vehicleText: { flex: 1, paddingRight: spacing.md },
+  kicker: { ...typography.kicker, color: colors.primaryBright },
+  vehicleTitle: { ...typography.title, fontSize: 22, marginTop: spacing.xs },
+  vehicleIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.primaryTint,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'rgba(77, 141, 255, 0.45)',
+  },
+
+  odo: {
+    marginTop: spacing.lg,
+    borderTopColor: colors.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: spacing.md,
+  },
+  odoDisplay: { marginBottom: spacing.sm },
+  odoLabel: { ...typography.kicker },
+  odoValueRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap' },
+  odoValue: { ...typography.metric, fontSize: 34, flexShrink: 1 },
+  odoUnit: {
+    ...typography.caption,
+    fontSize: 12,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+    color: colors.textMuted,
+    marginLeft: spacing.sm,
+  },
+  odoRow: { flexDirection: 'row', alignItems: 'center' },
+
+  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  sectionTitle: { ...typography.heading, fontSize: 16 },
+  sectionMeta: { ...typography.caption },
+  metrics: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.sm },
+   metric: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: radii.md,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.xs,
+    alignItems: 'center',
+  },
+  metricDotRow: { flexDirection: 'row', alignItems: 'center' },
+  metricDot: { width: 6, height: 6, borderRadius: 3, marginRight: spacing.xs },
+  metricValue: { ...typography.metric, fontSize: 20 },
+  metricLabel: {
+    ...typography.caption,
+    fontSize: 10,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginTop: spacing.xs,
+    textAlign: 'center',
+  },
+
+   searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.md,
+    minHeight: 44,
+  },
+  searchInput: {
+    flex: 1,
+    color: colors.text,
+    fontSize: 15,
+    paddingVertical: spacing.sm,
+  },
+
+  cardHead: { flexDirection: 'row', alignItems: 'flex-start' },
+  categoryIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: radii.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: StyleSheet.hairlineWidth,
+    marginRight: spacing.sm,
+  },
+  cardText: { flex: 1 },
+  code: { ...typography.caption, marginTop: spacing.xs },
   badge: {
-    borderColor: colors.border,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.pill,
     paddingHorizontal: spacing.md,
@@ -437,26 +605,32 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginLeft: spacing.sm,
   },
-  btnTxt: { ...typography.body, color: colors.text, fontWeight: '700' },
+  btnTxt: { ...typography.body, color: '#FFFFFF', fontWeight: '700' },
   disabled: { opacity: 0.6 },
   track: {
-    height: 8,
+    height: 6,
     borderRadius: radii.pill,
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: 'rgba(255, 255, 255, 0.10)',
     marginTop: spacing.md,
     overflow: 'hidden',
   },
-  fill: { height: 8, borderRadius: radii.pill },
+  fill: { height: 6, borderRadius: radii.pill },
   manageBtn: {
-    alignSelf: 'flex-start',
-    borderColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+    minHeight: 40,
+    borderColor: 'rgba(77, 141, 255, 0.45)',
     borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.sm,
+    borderRadius: radii.pill,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
+    backgroundColor: colors.primaryTint,
   },
-  manageTxt: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  manageBtnActive: { backgroundColor: colors.surfaceRaised },
+  manageTxt: { ...typography.label, color: colors.primaryBright, fontWeight: '600' },
   btn: {
     backgroundColor: colors.primary,
     borderRadius: radii.md,
@@ -466,15 +640,21 @@ const s = StyleSheet.create({
   },
   btnGhost: {
     alignSelf: 'flex-start',
-    borderColor: colors.primary,
+    borderColor: 'rgba(77, 141, 255, 0.45)',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
   },
-  btnGhostTxt: { ...typography.body, color: colors.primary, fontWeight: '600' },
-  errorTxt: { ...typography.caption, color: colors.danger, marginTop: spacing.sm },
-  okTxt: { ...typography.caption, color: colors.success, marginTop: spacing.sm },
-  footnote: { ...typography.caption, marginTop: spacing.lg, marginBottom: spacing.lg, lineHeight: 18 },
+  btnGhostTxt: { ...typography.body, color: colors.primaryBright, fontWeight: '600' },
+  errorTxt: { ...typography.caption, color: colors.dangerText, marginTop: spacing.sm },
+  okTxt: { ...typography.caption, color: colors.successText, marginTop: spacing.sm },
+  footnote: {
+    ...typography.caption,
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
 });

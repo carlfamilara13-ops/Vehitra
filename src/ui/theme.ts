@@ -27,13 +27,9 @@ export const colors = {
   // Tinted wash for emphasis (active tab, selected row). Keeps "active" from depending on a hue
   // change alone, and stays legible against the near-black background at small sizes.
   primaryTint: 'rgba(30, 107, 255, 0.16)',
-  // Glass surface layers, lifted straight from the glass-card reference:
-  // `background: rgba(255,255,255,0.05)` and `border: 1px solid rgba(255,255,255,0.3)`.
-  // Kept as tokens so every card, the tab bar and the buttons share one material.
-  glassFill: 'rgba(255, 255, 255, 0.05)',
-  // Same 5% fill under the name the Record-tab glass work uses.
-  glassPanel: 'rgba(255, 255, 255, 0.05)',
-  // Slightly stronger white wash for the specular sheen a floating surface catches from above.
+  // Glass surface layers
+  glassFill: 'transparent',
+  glassPanel: 'transparent',
   glassSheen: 'rgba(255, 255, 255, 0.08)',
   glassBorder: 'rgba(255, 255, 255, 0.3)',
 } as const;

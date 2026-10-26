@@ -1,5 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Linking,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +35,8 @@ import OdometerSheet from './OdometerSheet';
 import SelectedVehicleCard from './SelectedVehicleCard';
 import VehicleShowroom from './VehicleShowroom';
 import { maintenanceCondition, nextReminderForVehicle, vehicleStats } from './garageView';
+
+const RECORD_BG = require('../../../assets/appBG.jpg');
 
 type Props = BottomTabScreenProps<RootTabParamList, 'Record'>;
 
@@ -226,6 +235,8 @@ export default function RecordScreen({ navigation }: Props) {
       subtitle="Your garage"
       right={<GarageHeader onAddVehicle={() => navigation.navigate('VehicleLibrary')} />}
       contentStyle={{ paddingBottom: tabBarBottomClearance(insets.bottom) + spacing.lg }}
+      backgroundImage={RECORD_BG}
+      backgroundImageStyle={s.bgImage}
     >
       {blocked && (
         <View style={s.warn}>
@@ -345,6 +356,14 @@ export default function RecordScreen({ navigation }: Props) {
 }
 
 const s = StyleSheet.create({
+  // Tweak these to fit your device/look:
+  // - zoom: increase scale for "closer" crop, decrease for "further away" (e.g. 1.0, 1.1, 1.15)
+  // - horizontal offset: translateX (negative moves left, positive moves right)
+  // - vertical offset: translateY (negative moves up, positive moves down)
+  bgImage: {
+    transform: [{ scale: 0.4 }, { translateX: -1440 }, { translateY: -2550 }],
+    opacity: 0.9,
+  },
   loading: { marginTop: spacing.xl },
   warn: {
     backgroundColor: colors.warningSurface,
