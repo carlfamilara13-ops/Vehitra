@@ -14,7 +14,7 @@ import {
 import { FontAwesome5 } from '@expo/vector-icons';
 import type { VehicleRow } from '../../data/local/vehicleStore';
 import { vehicleDisplayName } from '../../data/local/vehicleStore';
-import GlassSurface from '../../ui/GlassSurface';
+
 import { colors, motion, radii, spacing, typography } from '../../ui/theme';
 import { pageForOffset, selectedVehicleIndex, vehicleTypeIcon } from './garageView';
 import { SHOWROOM_BACKGROUND, showroomVehicleImage } from './showroomAssets';
@@ -145,7 +145,7 @@ function VehiclePage({
       accessibilityRole="image"
       accessibilityLabel={`${vehicleDisplayName(vehicle)}, vehicle ${index + 1}`}
     >
-      <GlassSurface>
+      <View>
         {/* The showroom backdrop. `cover` fills the stage without distorting the photo, and the
             wrapper never takes a touch, so the horizontal swipe is untouched. */}
         <View
@@ -189,7 +189,7 @@ function VehiclePage({
             )}
           </View>
         </View>
-      </GlassSurface>
+      </View>
     </Animated.View>
   );
 }

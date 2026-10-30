@@ -1,11 +1,12 @@
 import React from 'react';
+import type { ColorValue } from 'react-native';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { VehicleRow } from '../../data/local/vehicleStore';
 import { vehicleDisplayName, VEHICLE_TYPE_LABELS } from '../../data/local/vehicleStore';
 import type { RideRow } from '../../data/local/ridesStore';
 import { formatDistanceM } from '../../domain/units';
-import GlassSurface from '../../ui/GlassSurface';
+
 import PrimaryButton from '../../ui/PrimaryButton';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
@@ -28,7 +29,7 @@ type Props = {
 
 // The treatment of each condition: a restrained tinted pill. The label inside carries the
 // meaning, so the state never rests on colour alone.
-const CONDITION_STYLE: Record<ConditionTone, { bg: string; border: string; fg: string }> = {
+const CONDITION_STYLE: Record<ConditionTone, { bg: ColorValue; border: ColorValue; fg: ColorValue }> = {
   ok: { bg: 'rgba(77, 255, 196, 0.12)', border: 'rgba(77, 255, 196, 0.34)', fg: colors.successText },
   watch: { bg: 'rgba(255, 196, 107, 0.12)', border: 'rgba(255, 196, 107, 0.35)', fg: colors.warningText },
   bad: { bg: 'rgba(255, 127, 152, 0.14)', border: 'rgba(255, 127, 152, 0.38)', fg: colors.dangerText },
@@ -62,7 +63,7 @@ export default function SelectedVehicleCard({
   const conditionStyle = CONDITION_STYLE[condition.tone];
 
   return (
-    <GlassSurface style={s.card}>
+    <View style={s.card}>
       <View style={s.headRow}>
         <View style={s.headText}>
           <Text style={[typography.heading, easy && s.easyHeading]} numberOfLines={2}>
@@ -202,7 +203,7 @@ export default function SelectedVehicleCard({
           />
         )}
       </View>
-    </GlassSurface>
+    </View>
   );
 }
 

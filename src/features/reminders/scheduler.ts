@@ -132,7 +132,16 @@ export async function syncReminders(
   }
 
   const inputs = await gatherReminderInputs(db);
-  const plans = planReminders({ ...inputs, nowMs });
+  const plans = planReminders({ ...inputs, nowMs }).filter((plan) => {
+    if (plan.kind === 'deadline') return settings.document_reminders_enabled === 1;
+    if (plan.kind === 'battery_idle') return settings.battery_reminders_enabled === 1;
+    if (plan.kind === 'maintenance') {
+      return plan.urgency === 'overdue'
+        ? settings.maintenance_overdue_enabled === 1
+        : settings.maintenance_upcoming_enabled === 1;
+    }
+    return false;
+  });
   result.plans = plans.length;
 
   const hasPermission = await adapter.ensurePermissions();

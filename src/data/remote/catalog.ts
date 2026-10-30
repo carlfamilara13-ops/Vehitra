@@ -16,6 +16,7 @@ import {
   type RemotePackRow,
 } from './catalogMap';
 import { getSupabase, hasSupabaseConfig } from './client';
+import { fetchAllPages } from './pagination';
 
 // One-model resource-pack download. The cloud catalog is versioned and read-only for users:
 // this fetches the published pack rows for exactly one model slug and returns them as the same
@@ -44,18 +45,24 @@ export async function downloadCatalogIndex(): Promise<CatalogIndexResult> {
   }
   try {
     const supabase = getSupabase();
-    const [brandRows, modelRows] = await Promise.all([
-      supabase.from('brands').select('slug, name'),
-      supabase
-        .from('vehicle_models')
-        .select('slug, name, is_generic, sort_order, brand:brands(slug), vehicle_type:vehicle_types(code)')
-        .eq('active', true),
+    const [brandPage, modelPage] = await Promise.all([
+      fetchAllPages<RemoteBrandRow>((from, to) =>
+        supabase.from('brands').select('slug, name').order('slug').range(from, to),
+      ),
+      fetchAllPages<RemoteIndexModelRow>((from, to) =>
+        supabase
+          .from('vehicle_models')
+          .select('slug, name, is_generic, sort_order, brand:brands(slug), vehicle_type:vehicle_types(code)')
+          .eq('active', true)
+          .order('slug')
+          .range(from, to),
+      ),
     ]);
-    if (brandRows.error) return { ok: false, reason: 'network', message: brandRows.error.message };
-    if (modelRows.error) return { ok: false, reason: 'network', message: modelRows.error.message };
+    if (!brandPage.ok) return { ok: false, reason: 'network', message: brandPage.message };
+    if (!modelPage.ok) return { ok: false, reason: 'network', message: modelPage.message };
 
-    const brands = (brandRows.data ?? []).map((r) => remoteBrandToIndex(r as unknown as RemoteBrandRow));
-    const models = (modelRows.data ?? []).map((r) => remoteModelToIndex(r as unknown as RemoteIndexModelRow));
+    const brands = brandPage.rows.map(remoteBrandToIndex);
+    const models = modelPage.rows.map(remoteModelToIndex);
     const problems = validateCatalogIndex(brands, models);
     if (problems.length > 0) {
       return { ok: false, reason: 'invalid_data', message: problems.join(' ') };

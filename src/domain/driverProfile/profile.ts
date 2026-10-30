@@ -24,6 +24,8 @@ export type DriverProfile = {
   license_codes: string | null;
   conditions: string | null;
   portrait_uri: string | null;
+  dl_code?: string | null;
+  serial_number?: string | null;
 };
 
 export type DriverProfileInput = {
@@ -42,6 +44,8 @@ export type DriverProfileInput = {
   licenseCodes: string;
   conditions: string;
   portraitUri: string | null;
+  dlCode?: string;
+  serialNumber?: string;
 };
 
 const MAX = {
@@ -55,6 +59,8 @@ const MAX = {
   eyeColor: 30,
   licenseCodes: 120,
   conditions: 400,
+  dlCode: 40,
+  serialNumber: 60,
 } as const;
 
 const EMPTY_FIELD = 'Not set';
@@ -94,6 +100,8 @@ export function validateDriverProfileInput(input: DriverProfileInput, now = Date
     ['eyeColor', input.eyeColor, 'Eye colour'],
     ['licenseCodes', input.licenseCodes, 'Driver codes'],
     ['conditions', input.conditions, 'Conditions or restrictions'],
+    ['dlCode', input.dlCode ?? '', 'DL code'],
+    ['serialNumber', input.serialNumber ?? '', 'Serial number'],
   ];
   for (const [limitKey, raw, label] of textLimits) {
     if (raw.trim().length > MAX[limitKey]) {
@@ -151,6 +159,8 @@ export function normalizeDriverProfileInput(input: DriverProfileInput): DriverPr
     license_codes: trimmedOrNull(input.licenseCodes),
     conditions: trimmedOrNull(input.conditions),
     portrait_uri: portrait && portrait.length ? portrait : null,
+    dl_code: trimmedOrNull(input.dlCode ?? ''),
+    serial_number: trimmedOrNull(input.serialNumber ?? ''),
   };
 }
 
@@ -170,6 +180,8 @@ export type DriverProfileView = {
   conditions: string;
   portraitUri: string | null;
   isComplete: boolean;
+  dlCode?: string;
+  serialNumber?: string;
 };
 
 function display(raw: string | null | undefined): string {
@@ -214,6 +226,8 @@ export function buildDriverProfileView(profile: DriverProfile | null): DriverPro
     conditions: display(profile?.conditions),
     portraitUri: profile?.portrait_uri ?? null,
     isComplete: !!realName,
+    dlCode: display(profile?.dl_code),
+    serialNumber: display(profile?.serial_number),
   };
 }
 

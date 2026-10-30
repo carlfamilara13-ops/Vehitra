@@ -271,6 +271,8 @@ function ProfileBackTemplate({
   const agencyCode = profile?.agency_code?.trim() || '';
   const licenseCodes = profile?.license_codes?.trim() || '';
   const conditions = profile?.conditions?.trim() || '';
+  const dlCode = ((profile as any)?.dl_code ?? '').trim();
+  const serialNumber = ((profile as any)?.serial_number ?? '').trim();
 
   return (
     <View style={s.templateContainer}>
@@ -281,6 +283,8 @@ function ProfileBackTemplate({
         {agencyCode ? <OverlayText text={agencyCode} config={layout.fields.agencyCode} unit={unit} /> : null}
         {licenseCodes ? <OverlayText text={licenseCodes} config={layout.fields.licenseCodes} unit={unit} /> : null}
         {conditions ? <OverlayText text={conditions} config={layout.fields.conditions} unit={unit} /> : null}
+        {dlCode ? <OverlayText text={dlCode} config={(layout.fields as any).dlCode} unit={unit} /> : null}
+        {serialNumber ? <OverlayText text={serialNumber} config={(layout.fields as any).serialNumber} unit={unit} /> : null}
       </ImageBackground>
     </View>
   );

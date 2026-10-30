@@ -9,5 +9,7 @@ import { m007 } from './007_accessories_battery';
 import { m008 } from './008_deadlines_settings';
 import { m009 } from './009_vehicle_catalog';
 import { m010 } from './010_driver_profile';
+import { m011 } from './011_notification_preferences';
+import { m012 } from './012_appearance';
 
-export const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008, m009, m010];
+export const MIGRATIONS: Migration[] = [m001, m002, m003, m004, m005, m006, m007, m008, m009, m010, m011, m012];

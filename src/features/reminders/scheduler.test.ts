@@ -120,6 +120,27 @@ describe('reminder scheduler', { skip: hasNodeSqlite() ? false : 'node:sqlite un
     assert.notEqual(rows[0].reminder_key, 'deadline:d1:2026-10-18');
   });
 
+  it('cancels document notices when that category is disabled', async () => {
+    await upsertDeadline(
+      db,
+      { id: 'd1', kind: 'registration', user_vehicle_id: 'v1', due_date: '2026-10-25' },
+      T0,
+    );
+    const first = fakeAdapter();
+    await syncReminders(db, first.adapter, T0);
+
+    await updateAppSettings(db, { document_reminders_enabled: false }, T0 + 1);
+    const second = fakeAdapter();
+    const result = await syncReminders(db, second.adapter, T0 + 1);
+
+    assert.equal(result.enabled, true);
+    assert.equal(result.plans, 0);
+    assert.equal(result.cancelled, 1);
+    assert.equal(second.calls.scheduled.length, 0);
+    assert.equal(second.calls.cancelled.length, 1);
+    assert.equal(scheduledRows(await listReminderSchedule(db)).length, 0);
+  });
+
   it('tears everything down when the notifications switch is off', async () => {
     await upsertDeadline(
       db,

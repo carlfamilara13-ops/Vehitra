@@ -51,24 +51,24 @@ export function saveDriverProfile(
             SET full_name = ?, nationality = ?, sex = ?, date_of_birth = ?, weight_kg = ?,
                 height_m = ?, address = ?, license_number = ?, expiration_date = ?, agency_code = ?,
                 blood_type = ?, eye_color = ?, license_codes = ?, conditions = ?, portrait_uri = ?,
-                updated_at = ?
+                dl_code = ?, serial_number = ?, updated_at = ?
           WHERE id = ?`,
         profile.full_name, profile.nationality, profile.sex, profile.date_of_birth,
         profile.weight_kg, profile.height_m, profile.address, profile.license_number,
         profile.expiration_date, profile.agency_code, profile.blood_type, profile.eye_color,
-        profile.license_codes, profile.conditions, profile.portrait_uri, now, PROFILE_ID,
+        profile.license_codes, profile.conditions, profile.portrait_uri, profile.dl_code ?? null, profile.serial_number ?? null, now, PROFILE_ID,
       );
     } else {
       await db.runAsync(
         `INSERT INTO driver_profile
            (id, full_name, nationality, sex, date_of_birth, weight_kg, height_m, address,
             license_number, expiration_date, agency_code, blood_type, eye_color, license_codes,
-            conditions, portrait_uri, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            conditions, portrait_uri, dl_code, serial_number, created_at, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         PROFILE_ID, profile.full_name, profile.nationality, profile.sex, profile.date_of_birth,
         profile.weight_kg, profile.height_m, profile.address, profile.license_number,
         profile.expiration_date, profile.agency_code, profile.blood_type, profile.eye_color,
-        profile.license_codes, profile.conditions, profile.portrait_uri, now, now,
+        profile.license_codes, profile.conditions, profile.portrait_uri, profile.dl_code ?? null, profile.serial_number ?? null, now, now,
       );
     }
 

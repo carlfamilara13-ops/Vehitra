@@ -10,6 +10,7 @@ import {
   hasGenericModels,
   listCatalogBrands,
   listCatalogModels,
+  replaceCatalogIndex,
   replaceModelPack,
   upsertCatalogComponent,
 } from './catalogStore';
@@ -59,6 +60,54 @@ describe('local catalog store', { skip: hasNodeSqlite() ? false : 'node:sqlite u
       assert.equal(m.brand_slug, null);
       assert.equal(m.is_generic, 1);
     }
+  });
+
+  it('replaces the brand/model index without deleting local rows', async () => {
+    const counts = await replaceCatalogIndex(
+      db,
+      [
+        { slug: 'honda', name: 'Honda Motorcycles' },
+        { slug: 'cfmoto', name: 'CFMOTO' },
+      ],
+      [
+        { slug: 'honda-click-125', brandSlug: 'honda', vehicleType: 'motorcycle', name: 'Click 125', isGeneric: false, sortOrder: 100 },
+        { slug: 'cfmoto-450mt', brandSlug: 'cfmoto', vehicleType: 'motorcycle', name: '450MT', isGeneric: false, sortOrder: 50 },
+        { slug: 'generic-motorcycle', brandSlug: null, vehicleType: 'motorcycle', name: 'Other motorcycle', isGeneric: true, sortOrder: 900 },
+      ],
+    );
+    assert.deepEqual(counts, { brands: 2, models: 3 });
+
+    const brands = await listCatalogBrands(db, 'motorcycle');
+    assert.deepEqual(brands.map((b) => b.slug), ['honda', 'cfmoto']);
+    assert.equal(brands.find((b) => b.slug === 'honda')?.name, 'Honda Motorcycles');
+    assert.equal(brands.find((b) => b.slug === 'honda')?.sort_order, 10);
+    assert.equal(brands.find((b) => b.slug === 'cfmoto')?.sort_order, 100);
+
+    const honda = (await listCatalogModels(db, 'motorcycle', 'honda')).map((m) => m.slug);
+    assert.deepEqual(honda, ['honda-click-125']);
+    const cfmoto = (await listCatalogModels(db, 'motorcycle', 'cfmoto')).map((m) => m.slug);
+    assert.deepEqual(cfmoto, ['cfmoto-450mt']);
+
+    assert.equal((await getCatalogModel(db, 'honda-beat'))?.active, 0);
+    assert.equal((await getCatalogModel(db, 'yamaha-nmax'))?.active, 0);
+  });
+
+  it('rejects an invalid index atomically', async () => {
+    await assert.rejects(
+      () =>
+        replaceCatalogIndex(
+          db,
+          [{ slug: 'honda', name: 'Honda' }],
+          [
+            { slug: 'honda-click-125', brandSlug: 'honda', vehicleType: 'motorcycle', name: 'Click 125', isGeneric: false, sortOrder: 100 },
+            { slug: 'unknown-brand', brandSlug: 'missing', vehicleType: 'motorcycle', name: 'Unknown', isGeneric: false, sortOrder: 100 },
+          ],
+        ),
+      (e: unknown) => e instanceof MaintenanceValidationError,
+    );
+
+    assert.equal((await getCatalogModel(db, 'honda-click-125'))?.active, 1);
+    assert.equal((await getCatalogModel(db, 'honda-beat'))?.active, 1);
   });
 
   it('reports whether an "Other …" choice exists for the type', async () => {

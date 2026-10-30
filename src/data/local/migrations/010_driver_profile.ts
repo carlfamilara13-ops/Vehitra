@@ -26,6 +26,8 @@ export const m010: Migration = {
       license_codes TEXT,
       conditions TEXT,
       portrait_uri TEXT,                             -- stable file:// URI in app documents
+      dl_code TEXT,
+      serial_number TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     );

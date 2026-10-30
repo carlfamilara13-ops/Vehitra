@@ -4,8 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { Units } from '../../domain/units';
 import { formatDistanceM } from '../../domain/units';
 import { buildWeeklyActivity, formatDurationS, type ActivityRide, type WeeklyActivity } from '../../domain/dashboard/activity';
-import GlassCard from '../../ui/GlassCard';
-import { colors, spacing, typography } from '../../ui/theme';
+import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
 
 type Props = {
@@ -26,7 +25,7 @@ export default function WeeklyActivityCard({ rides, units, nowMs }: Props) {
 
   if (week.isEmpty) {
     return (
-      <GlassCard>
+      <View style={s.card}>
         <View style={s.headRow}>
           <Text style={[typography.kicker]}>Last 7 days</Text>
         </View>
@@ -45,12 +44,12 @@ export default function WeeklyActivityCard({ rides, units, nowMs }: Props) {
             </View>
           ))}
         </View>
-      </GlassCard>
+      </View>
     );
   }
 
   return (
-    <GlassCard>
+    <View style={s.card}>
       <View style={s.headRow}>
         <Text style={typography.kicker}>Last 7 days</Text>
         {week.streakDays > 0 && (
@@ -102,11 +101,24 @@ export default function WeeklyActivityCard({ rides, units, nowMs }: Props) {
           </View>
         ))}
       </View>
-    </GlassCard>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+  },
   headRow: {
     flexDirection: 'row',
     alignItems: 'center',

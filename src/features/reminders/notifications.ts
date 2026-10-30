@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+
 // Platform boundary for local reminder notifications.
 //
 // expo-notifications is required lazily inside try/catch so the JS bundle keeps working where
@@ -9,6 +11,8 @@
 // - notifications are local-only; nothing leaves the device;
 // - exact delivery time is not guaranteed (OS doze/batching) — that is the OS contract, not a bug;
 // - a native rebuild is required after adding expo-notifications before any of this fires.
+
+const REMINDER_CHANNEL_ID = 'vehitra-reminders';
 
 export type ReminderNotification = {
   title: string;
@@ -50,7 +54,7 @@ export function createNotificationsAdapter(): NotificationsAdapter {
         handleNotification: async () => ({
           shouldShowBanner: true,
           shouldShowList: true,
-          shouldPlaySound: false,
+          shouldPlaySound: true,
           shouldSetBadge: false,
         }),
       });
@@ -65,6 +69,16 @@ export function createNotificationsAdapter(): NotificationsAdapter {
     async ensurePermissions() {
       if (!mod) return false;
       try {
+        if (Platform.OS === 'android') {
+          await mod.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
+            name: 'Vehitra reminders',
+            description: 'Maintenance, document expiry, and battery inactivity reminders.',
+            importance: mod.AndroidImportance.DEFAULT,
+            sound: 'default',
+            enableVibrate: true,
+            vibrationPattern: [0, 250, 250, 250],
+          });
+        }
         const current = await mod.getPermissionsAsync();
         if (current.granted || current.status === 'granted') return true;
         const asked = await mod.requestPermissionsAsync();
@@ -79,7 +93,11 @@ export function createNotificationsAdapter(): NotificationsAdapter {
       try {
         return await mod.scheduleNotificationAsync({
           content: { title: n.title, body: n.body },
-          trigger: { type: mod.SchedulableTriggerInputTypes.DATE, date: new Date(n.fireAt) },
+          trigger: {
+            type: mod.SchedulableTriggerInputTypes.DATE,
+            date: new Date(n.fireAt),
+            ...(Platform.OS === 'android' ? { channelId: REMINDER_CHANNEL_ID } : {}),
+          },
         });
       } catch {
         return null;

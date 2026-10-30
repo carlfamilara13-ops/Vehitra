@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ColorValue } from 'react-native';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { WalletDoc } from '../../domain/dashboard/wallet';
@@ -17,7 +18,7 @@ type Props = {
   onManage: () => void;
 };
 
-const PHASE_COLOR: Record<WalletDoc['phase'], string> = {
+const PHASE_COLOR: Record<WalletDoc['phase'], ColorValue> = {
   overdue: colors.danger,
   due_soon: colors.warningText,
   upcoming: colors.textMuted,

@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ColorValue } from 'react-native';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { MaintenanceStatus } from '../../domain/maintenance/types';
@@ -23,7 +24,7 @@ type Props = {
   onOpenVehicle: () => void;
 };
 
-const TONE_COLOR: Record<StatusTone, string> = {
+const TONE_COLOR: Record<StatusTone, ColorValue> = {
   ok: colors.success,
   watch: colors.warningText,
   bad: colors.danger,

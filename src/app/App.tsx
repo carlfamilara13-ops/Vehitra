@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
@@ -10,6 +11,7 @@ export default function App() {
   // system font until the display family resolves, so a slow or failed load can never leave the
   // user staring at a blank screen.
   const [, fontError] = useFonts({ Rajdhani_700Bold });
+  const colorScheme = useColorScheme();
 
   useEffect(() => {
     if (fontError) {
@@ -19,7 +21,7 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
+      <StatusBar style={colorScheme === 'light' ? 'dark' : 'light'} />
       <RootNavigator />
     </SafeAreaProvider>
   );

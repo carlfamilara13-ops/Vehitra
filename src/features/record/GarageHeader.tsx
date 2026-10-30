@@ -1,7 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import GlassSurface from '../../ui/GlassSurface';
+
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
 
@@ -24,7 +24,7 @@ export default function GarageHeader({ onAddVehicle }: Props) {
       accessibilityHint="Opens the vehicle library to add a vehicle"
       style={s.press}
     >
-      <GlassSurface style={[s.btn, easy && s.easyBtn]}>
+      <View style={[s.btn, easy && s.easyBtn]}>
         <View style={s.row}>
           <Ionicons
             name="add"
@@ -35,7 +35,7 @@ export default function GarageHeader({ onAddVehicle }: Props) {
           />
           <Text style={[s.label, easy && s.easyLabel]}>Add Vehicle</Text>
         </View>
-      </GlassSurface>
+      </View>
     </TouchableOpacity>
   );
 }

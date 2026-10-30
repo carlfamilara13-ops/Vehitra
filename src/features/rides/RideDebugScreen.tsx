@@ -8,7 +8,6 @@ import { buildReport } from './report';
 import { ensurePermissions } from './tracking/permissions';
 import { runStartFlow } from './tracking/startFlow';
 import { resumeIfInterrupted, retryTracking, startRide, stopRide } from './tracking/tracker';
-import { colors } from '../../ui/theme';
 
 // Temporary developer screen for verifying ride tracking on a real phone.
 // The real Record / Rides screens replace it in later steps.
@@ -131,8 +130,8 @@ export default function RideDebugScreen() {
         ))}
 
         {activeId ? (
-          <TouchableOpacity style={[s.btn, { backgroundColor: colors.dangerSolid, opacity: busy ? 0.5 : 1 }]} onPress={onStop} disabled={busy}>
-            <Text style={[s.btnTxt, s.stopTxt]}>STOP RIDE</Text>
+          <TouchableOpacity style={[s.btn, { backgroundColor: '#C62828', opacity: busy ? 0.5 : 1 }]} onPress={onStop} disabled={busy}>
+            <Text style={s.btnTxt}>STOP RIDE</Text>
           </TouchableOpacity>
         ) : (
           <TouchableOpacity style={[s.btn, { opacity: busy ? 0.5 : 1 }]} onPress={onStart} disabled={busy}>
@@ -221,17 +220,16 @@ export default function RideDebugScreen() {
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.background },
-  h1: { color: colors.text, fontSize: 20, fontWeight: '700' },
-  h2: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 18, marginBottom: 6 },
-  txt: { color: colors.text, fontSize: 14 },
-  dim: { color: colors.textMuted, fontSize: 12, marginVertical: 4 },
-  log: { color: colors.textMuted, fontSize: 11, fontFamily: 'monospace' },
-  btn: { backgroundColor: colors.primary, padding: 18, borderRadius: 12, alignItems: 'center', marginVertical: 12 },
-  btnSm: { backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, marginRight: 8, marginTop: 8 },
-  btnTxt: { color: colors.primaryInk, fontWeight: '700' },
-  stopTxt: { color: '#FFFFFF' },
+  root: { flex: 1, backgroundColor: '#05070D' },
+  h1: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  h2: { color: '#fff', fontSize: 16, fontWeight: '600', marginTop: 18, marginBottom: 6 },
+  txt: { color: '#E8EEFF', fontSize: 14 },
+  dim: { color: '#8A96B5', fontSize: 12, marginVertical: 4 },
+  log: { color: '#8A96B5', fontSize: 11, fontFamily: 'monospace' },
+  btn: { backgroundColor: '#1E6BFF', padding: 18, borderRadius: 12, alignItems: 'center', marginVertical: 12 },
+  btnSm: { backgroundColor: '#1E6BFF', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 10, marginRight: 8, marginTop: 8 },
+  btnTxt: { color: '#fff', fontWeight: '700' },
   row: { flexDirection: 'row' },
-  card: { backgroundColor: colors.surface, padding: 12, borderRadius: 10, marginVertical: 4 },
-  warn: { backgroundColor: colors.warningSurface, padding: 12, borderRadius: 10, marginVertical: 8 },
+  card: { backgroundColor: '#0B0F1A', padding: 12, borderRadius: 10, marginVertical: 4 },
+  warn: { backgroundColor: '#3A2A00', padding: 12, borderRadius: 10, marginVertical: 8 },
 });

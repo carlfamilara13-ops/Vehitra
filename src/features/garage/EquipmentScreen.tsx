@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  type ColorValue,
   Alert,
   StyleSheet,
   Text,
@@ -230,7 +231,7 @@ export default function EquipmentScreen({ navigation, route }: Props) {
     );
   }
 
-  const levelColors: Record<string, { bg: string; fg: string }> = {
+  const levelColors: Record<string, { bg: ColorValue; fg: ColorValue }> = {
     ok: { bg: colors.surfaceRaised, fg: colors.textMuted },
     watch: { bg: colors.warningSurface, fg: colors.warningText },
     warn: { bg: 'rgba(255, 127, 152, 0.14)', fg: colors.danger },

@@ -67,12 +67,16 @@ export const licenseCardLayout: LicenseCardLayout = {
   },
   back: {
     fields: {
+      // Photo area top left - portrait shown on front only, but layout preserved
+      licenseNumber: { left: 72.0, top: 10.0, width: 26.0, fontSize: 12, color: '#000000', fontWeight: '800' },
+      agencyCode: { left: 72.0, top: 16.0, width: 26.0, fontSize: 12, color: '#000000', fontWeight: '800' },
+      // Serial number middle right
+      serialNumber: { left: 72.0, top: 45.0, width: 26.0, fontSize: 12, color: '#000000', fontWeight: '800' },
       address: { left: 26.0, top: 41.5, width: 46.0, fontSize: 10, lineHeight: 12, color: '#000000', numberOfLines: 2 },
-      licenseNumber: { left: 26.0, top: 61.5, width: 24.0, fontSize: 12, color: '#000000' },
-      expirationDate: { left: 52.0, top: 61.5, width: 18.0, fontSize: 12, color: '#000000' },
-      agencyCode: { left: 78.0, top: 61.5, width: 16.0, fontSize: 12, color: '#000000' },
+      expirationDate: { left: 26.0, top: 61.5, width: 18.0, fontSize: 12, color: '#000000' },
       licenseCodes: { left: 26.0, top: 3.5, width: 40.0, fontSize: 9, lineHeight: 11, color: '#000000', numberOfLines: 6 },
       conditions: { left: 26.0, top: 41.5, width: 46.0, fontSize: 10, lineHeight: 12, color: '#000000', numberOfLines: 2 },
+      dlCode: { left: 72.0, top: 22.0, width: 26.0, fontSize: 12, color: '#000000', fontWeight: '800' },
     },
   },
 };

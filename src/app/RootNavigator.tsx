@@ -1,6 +1,6 @@
-import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import { DarkTheme, NavigationContainer, type Theme } from '@react-navigation/native';
+import React, { useMemo } from 'react';
+import { StyleSheet, View, useColorScheme } from 'react-native';
+import { DarkTheme, DefaultTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { createBottomTabNavigator, type BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -70,19 +70,6 @@ const hiddenTabOptions: BottomTabNavigationOptions = {
   tabBarItemStyle: { display: 'none' },
 };
 
-const navTheme: Theme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    primary: colors.primary,
-    background: colors.background,
-    card: colors.surface,
-    text: colors.text,
-    border: colors.border,
-    notification: colors.primary,
-  },
-};
-
 // The five destinations the bar actually shows. Record sits in the middle and is the app's one
 // primary action; the other four are equal-weight destinations.
 type VisibleTab = 'Dashboard' | 'Rides' | 'Record' | 'Parts' | 'Settings';
@@ -132,6 +119,20 @@ const tabBarIcon =
 
 export default function RootNavigator() {
   const insets = useSafeAreaInsets();
+  const colorScheme = useColorScheme();
+  const baseNavigationTheme = colorScheme === 'light' ? DefaultTheme : DarkTheme;
+  const navTheme = useMemo<Theme>(() => ({
+    ...baseNavigationTheme,
+    colors: {
+      ...baseNavigationTheme.colors,
+      primary: colorScheme === 'light' ? '#1E6BFF' : '#1E6BFF',
+      background: colorScheme === 'light' ? '#F3F6FC' : '#0A0A1A',
+      card: colorScheme === 'light' ? '#FFFFFF' : '#11152A',
+      text: colorScheme === 'light' ? '#18233D' : '#E9F1FF',
+      border: colorScheme === 'light' ? '#D7DFEE' : '#252C4A',
+      notification: colorScheme === 'light' ? '#1E6BFF' : '#1E6BFF',
+    },
+  }), [baseNavigationTheme, colorScheme]);
 
   return (
     <PrefsProvider>
@@ -139,8 +140,8 @@ export default function RootNavigator() {
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.primaryBright,
-          tabBarInactiveTintColor: colors.textMuted,
+          tabBarActiveTintColor: colorScheme === 'light' ? '#1459DB' : '#60EFFF',
+          tabBarInactiveTintColor: colorScheme === 'light' ? '#596983' : '#93A0BF',
           tabBarStyle: {
             position: 'absolute',
             height: TAB_BAR_CONTENT_HEIGHT,
