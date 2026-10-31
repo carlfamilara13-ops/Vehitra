@@ -1,15 +1,18 @@
-import React, { useMemo, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useMemo } from 'react';
+import { StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Circle, Path } from 'react-native-svg';
 import type { RideRow } from '../../data/local/ridesStore';
 import { decodePolyline, type LatLon } from '../../domain/ride/polyline';
-import { projectRoute, type RouteSketch, type SketchedPoint } from '../../domain/ride/sketch';
 import type { Route } from '../../domain/ride/route';
 import { rankLongestRides } from '../../domain/dashboard/longestRides';
 import { formatDistanceM, type Units } from '../../domain/units';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
+import RideMapPreview from '../rides/RideMapPreview';
+
+const MAP_PREVIEW_HEIGHT = 64;
 
 type Props = {
   rides: readonly RideRow[];
@@ -18,7 +21,6 @@ type Props = {
   onOpenRide: (id: string) => void;
 };
 
-const SKETCH_HEIGHT = 64;
 
 // Reads the route a ride was finalized with. Same JSON Route shape the ride detail screen
 // reads; absent or unreadable segments simply mean "no map" for that row.
@@ -35,14 +37,7 @@ function segmentsOf(ride: RideRow): LatLon[][] {
   }
 }
 
-// Same path builder the ride detail screen uses, so the mini map and the full route agree.
-function toPath(points: SketchedPoint[]): string {
-  if (points.length === 0) return '';
-  const [first, ...rest] = points;
-  const moves = rest.map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  return `M ${first.x.toFixed(1)} ${first.y.toFixed(1)} ${moves}`;
-}
-
+// Uses the saved ride route segments so the preview matches ride detail.
 function duration(s: number | null): string {
   if (s == null) return '—';
   const h = Math.floor(s / 3600);
@@ -50,9 +45,7 @@ function duration(s: number | null): string {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-// Section 5: the longest rides. Ranked from saved rides only, each row with a small offline
-// route sketch projected from the stored polyline (no tiles, no network) and a tap through to
-// the full ride detail.
+// Section 5: the longest rides. Ranked from saved rides, each row shows its saved route over a basemap.
 export default function LongestRidesCard({ rides, units, limit = 3, onOpenRide }: Props) {
   const easy = usePrefs().uiMode === 'easy';
   const ranked = useMemo(
@@ -75,7 +68,7 @@ export default function LongestRidesCard({ rides, units, limit = 3, onOpenRide }
       <View style={s.card}>
         <Text style={typography.heading}>Longest rides</Text>
         <Text style={s.muted}>
-          Once you have saved rides, your three longest appear here with a sketch of each route.
+          Once you have saved rides, your three longest appear here with their routes on the map.
         </Text>
       </View>
     );
@@ -113,16 +106,6 @@ function LongestRideRow({
   easy: boolean;
   onPress: () => void;
 }) {
-  const [width, setWidth] = useState(0);
-  const onLayout = (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width);
-
-  const sketch: RouteSketch | null = useMemo(() => {
-    if (width <= 0) return null;
-    const segments = segmentsOf(ride);
-    if (segments.length === 0) return null;
-    return projectRoute(segments, { width, height: SKETCH_HEIGHT, padding: 8 });
-  }, [ride, width]);
-
   const dateText = new Date(ride.started_at).toLocaleDateString();
 
   return (
@@ -155,32 +138,11 @@ function LongestRideRow({
           importantForAccessibility="no-hide-descendants"
         />
       </View>
-      <View style={s.sketchBox} onLayout={onLayout}>
-        {sketch && !sketch.isEmpty && width > 0 ? (
-          <Svg width={width} height={SKETCH_HEIGHT}>
-            {sketch.segments.map((seg, i) => (
-              <Path
-                key={i}
-                d={toPath(seg)}
-                stroke={colors.primaryBright}
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-            ))}
-            <Circle cx={sketch.segments[0][0].x} cy={sketch.segments[0][0].y} r={3} fill={colors.success} />
-            <Circle
-              cx={sketch.segments[sketch.segments.length - 1].slice(-1)[0].x}
-              cy={sketch.segments[sketch.segments.length - 1].slice(-1)[0].y}
-              r={3}
-              fill={colors.danger}
-            />
-          </Svg>
-        ) : (
-          <Text style={s.noRoute}>No stored route for this ride</Text>
-        )}
-      </View>
+      <RideMapPreview
+        segments={segmentsOf(ride)}
+        containerStyle={s.sketchBox}
+        emptyLabel="No stored route for this ride"
+      />
     </TouchableOpacity>
   );
 }
@@ -211,7 +173,7 @@ const s = StyleSheet.create({
   rowText: { flex: 1 },
   distance: { ...typography.heading },
   meta: { ...typography.caption, marginTop: 2 },
-  sketchBox: { height: SKETCH_HEIGHT, marginTop: spacing.sm, justifyContent: 'center' },
+  sketchBox: { height: MAP_PREVIEW_HEIGHT, marginTop: spacing.sm, justifyContent: 'center' },
   noRoute: { ...typography.caption, color: colors.textMuted },
   easyDistance: { fontSize: 20 },
 });

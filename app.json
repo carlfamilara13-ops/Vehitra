@@ -5,6 +5,7 @@
     "scheme": "vehitra",
     "version": "0.1.0",
     "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
     "android": {
       "package": "com.vehitra.app",
       "permissions": [
@@ -25,6 +26,8 @@
     "plugins": [
       "expo-dev-client",
       "expo-sqlite",
+      "expo-system-ui",
+      "@maplibre/maplibre-react-native",
       "expo-notifications",
       [
         "expo-image-picker",

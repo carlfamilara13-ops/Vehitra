@@ -1,5 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { ColorValue } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import type { MaintenanceStatus } from '../../domain/maintenance/types';
 import type { BatteryIdleLevel } from '../../domain/battery/idle';
@@ -23,7 +26,7 @@ type Props = {
   onOpenVehicle: () => void;
 };
 
-const TONE_COLOR: Record<StatusTone, string> = {
+const TONE_COLOR: Record<StatusTone, ColorValue> = {
   ok: colors.success,
   watch: colors.warningText,
   bad: colors.danger,
@@ -85,7 +88,7 @@ export default function VehicleStatusStrip({ vehicleName, items, onOpenVehicle }
             accessible
             accessibilityLabel={`${item.label}: ${item.detail}`}
           >
-            <View style={[s.icon, { borderColor: TONE_COLOR[item.tone] }]}>
+            <View style={s.icon}>
               <Ionicons
                 name={item.icon}
                 size={easy ? 22 : 20}
@@ -109,7 +112,7 @@ export default function VehicleStatusStrip({ vehicleName, items, onOpenVehicle }
 
 const s = StyleSheet.create({
   card: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.surface,
     borderColor: colors.border,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.lg,
@@ -127,7 +130,7 @@ const s = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.surfaceRaised,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.xs,

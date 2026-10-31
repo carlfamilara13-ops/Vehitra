@@ -1,18 +1,10 @@
 import React from 'react';
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type ImageSourcePropType,
-  type ImageStyle,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { Image, ScrollView, StyleSheet, View, type ImageSourcePropType, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
+import { Text } from './neu/NeuText';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from './theme';
 import { usePrefs } from '../app/prefs';
+import { useNeu } from './neu/useNeu';
 
 type Props = {
   /** Optional: a screen that draws its own header (the Dashboard wordmark) passes no title. */
@@ -46,6 +38,7 @@ export default function Screen({
   // Easy mode enlarges the shared frame text on every screen (the Dashboard adds its own
   // metric sizing on top). Read from prefs here so no screen has to remember to opt in.
   const easy = usePrefs().uiMode === 'easy';
+  const n = useNeu();
   const inner = (
     <>
       {!!(title || right) && (
@@ -62,7 +55,7 @@ export default function Screen({
   );
 
   return (
-    <SafeAreaView style={s.root} edges={['top', 'left', 'right']}>
+    <SafeAreaView style={[s.root, { backgroundColor: n.c.bg }]} edges={['top', 'left', 'right']}>
       {backgroundImage ? (
         <Image
           source={backgroundImage}

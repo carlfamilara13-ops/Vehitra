@@ -1,11 +1,16 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { ColorValue } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { View, TouchableOpacity } from '../../ui/neu/NeuAuto';
+import NeuButton from '../../ui/neu/NeuButton';
+import NeuOdometer from '../../ui/neu/NeuOdometer';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import type { VehicleRow } from '../../data/local/vehicleStore';
 import { vehicleDisplayName, VEHICLE_TYPE_LABELS } from '../../data/local/vehicleStore';
 import type { RideRow } from '../../data/local/ridesStore';
 import { formatDistanceM } from '../../domain/units';
-import GlassSurface from '../../ui/GlassSurface';
+
 import PrimaryButton from '../../ui/PrimaryButton';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
@@ -28,11 +33,11 @@ type Props = {
 
 // The treatment of each condition: a restrained tinted pill. The label inside carries the
 // meaning, so the state never rests on colour alone.
-const CONDITION_STYLE: Record<ConditionTone, { bg: string; border: string; fg: string }> = {
-  ok: { bg: 'rgba(77, 255, 196, 0.12)', border: 'rgba(77, 255, 196, 0.34)', fg: colors.successText },
-  watch: { bg: 'rgba(255, 196, 107, 0.12)', border: 'rgba(255, 196, 107, 0.35)', fg: colors.warningText },
-  bad: { bg: 'rgba(255, 127, 152, 0.14)', border: 'rgba(255, 127, 152, 0.38)', fg: colors.dangerText },
-  unknown: { bg: 'rgba(255, 255, 255, 0.05)', border: colors.glassBorder, fg: colors.textMuted },
+const CONDITION_STYLE: Record<ConditionTone, { bg: ColorValue; border: ColorValue; fg: ColorValue }> = {
+  ok: { bg: colors.surfaceRaised, border: 'transparent', fg: colors.successText },
+  watch: { bg: colors.surfaceRaised, border: 'transparent', fg: colors.warningText },
+  bad: { bg: colors.surfaceRaised, border: 'transparent', fg: colors.dangerText },
+  unknown: { bg: colors.surfaceRaised, border: 'transparent', fg: colors.textMuted },
 };
 
 // The anchor surface under the carousel: who this vehicle is, how it stands, and the actions
@@ -62,7 +67,7 @@ export default function SelectedVehicleCard({
   const conditionStyle = CONDITION_STYLE[condition.tone];
 
   return (
-    <GlassSurface style={s.card}>
+    <View style={s.card}>
       <View style={s.headRow}>
         <View style={s.headText}>
           <Text style={[typography.heading, easy && s.easyHeading]} numberOfLines={2}>
@@ -98,18 +103,8 @@ export default function SelectedVehicleCard({
           the baseline beside it, and the label sits centred underneath. The stored reading and
           the unit conversion are unchanged — only the arrangement is. */}
       <View style={s.odoBlock}>
-        <View style={s.odoRow}>
-          <Text
-            style={[s.odoValue, easy && s.easyOdo]}
-            numberOfLines={1}
-            adjustsFontSizeToFit
-            minimumFontScale={0.6}
-          >
-            {odo.value}
-          </Text>
-          <Text style={s.odoUnit}>{odo.unit}</Text>
-        </View>
-        <Text style={s.odoLabel}>Total Odometer</Text>
+        <NeuOdometer value={odo.value} unit={odo.unit} easy={easy} />
+        <Text style={s.odoLabel}>Total odometer</Text>
       </View>
 
       <View style={s.stats}>
@@ -180,20 +175,15 @@ export default function SelectedVehicleCard({
 
       <View style={s.actions}>
         {recording ? (
-          <TouchableOpacity
-            style={[s.stopBtn, busy && s.disabled]}
-            onPress={onStopTracking}
-            disabled={busy}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: busy }}
+          <NeuButton
+            variant="danger"
+            icon="stop-circle"
+            label={`Stop ride (${formatDistanceM(activeRide?.distance_m ?? 0, prefs.units, { decimals: 2 })})`}
             accessibilityLabel="Stop ride"
             accessibilityHint="Stops recording and saves the ride"
-          >
-            <Text style={s.stopTxt}>
-              STOP RIDE — {formatDistanceM(activeRide?.distance_m ?? 0, prefs.units, { decimals: 2 })}
-            </Text>
-          </TouchableOpacity>
+            onPress={onStopTracking}
+            disabled={busy}
+          />
         ) : (
           <PrimaryButton
             label="Start Tracking"
@@ -202,12 +192,12 @@ export default function SelectedVehicleCard({
           />
         )}
       </View>
-    </GlassSurface>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  card: { padding: spacing.lg },
+  card: { padding: spacing.lg, backgroundColor: colors.surface, borderRadius: radii.lg },
   headRow: { flexDirection: 'row', alignItems: 'flex-start' },
   headText: { flex: 1, paddingRight: spacing.md },
   easyHeading: { fontSize: 20 },
@@ -232,8 +222,8 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.md,
   },
   conditionDot: { width: 6, height: 6, borderRadius: 3, marginRight: spacing.xs },
-  conditionTxt: { ...typography.caption, fontWeight: '700', letterSpacing: 0.6 },
-  odoBlock: { width: '100%', alignItems: 'center', marginTop: spacing.lg },
+  conditionTxt: { ...typography.caption, fontWeight: '700' },
+  odoBlock: { width: '100%', alignItems: 'center', marginTop: spacing.lg, paddingVertical: spacing.md },
   odoRow: {
     width: '100%',
     flexDirection: 'row',
@@ -261,7 +251,7 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
   },
-  statLabel: { ...typography.caption, fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' },
+  statLabel: { ...typography.caption, fontSize: 12 },
   statValue: { ...typography.label, fontSize: 14, marginTop: 2, textAlign: 'center' },
   secondaryRow: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.sm },
    secondary: {
@@ -270,9 +260,9 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 44,
-    borderRadius: radii.lg,
+    borderRadius: radii.md,
     borderWidth: 0,
-    backgroundColor: 'transparent',
+    backgroundColor: colors.surface,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.sm,
     gap: spacing.xs,

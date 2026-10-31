@@ -1,5 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { getDb } from '../../data/local/db';
@@ -192,9 +194,9 @@ const s = StyleSheet.create({
   badgeTxt: { ...typography.caption, color: colors.primary, fontWeight: '700' },
   actions: { flexDirection: 'row', marginTop: spacing.md },
   btnGhost: {
+    backgroundColor: colors.surface,
+
     alignSelf: 'flex-start',
-    borderColor: colors.primary,
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,

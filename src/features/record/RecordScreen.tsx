@@ -1,12 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Linking,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Linking, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,7 +31,6 @@ import SelectedVehicleCard from './SelectedVehicleCard';
 import VehicleShowroom from './VehicleShowroom';
 import { maintenanceCondition, nextReminderForVehicle, vehicleStats } from './garageView';
 
-const RECORD_BG = require('../../../assets/appBG.jpg');
 
 type Props = BottomTabScreenProps<RootTabParamList, 'Record'>;
 
@@ -235,8 +229,6 @@ export default function RecordScreen({ navigation }: Props) {
       subtitle="Your garage"
       right={<GarageHeader onAddVehicle={() => navigation.navigate('VehicleLibrary')} />}
       contentStyle={{ paddingBottom: tabBarBottomClearance(insets.bottom) + spacing.lg }}
-      backgroundImage={RECORD_BG}
-      backgroundImageStyle={s.bgImage}
     >
       {blocked && (
         <View style={s.warn}>
@@ -360,10 +352,6 @@ const s = StyleSheet.create({
   // - zoom: increase scale for "closer" crop, decrease for "further away" (e.g. 1.0, 1.1, 1.15)
   // - horizontal offset: translateX (negative moves left, positive moves right)
   // - vertical offset: translateY (negative moves up, positive moves down)
-  bgImage: {
-    transform: [{ scale: 0.4 }, { translateX: -1440 }, { translateY: -2550 }],
-    opacity: 0.9,
-  },
   loading: { marginTop: spacing.xl },
   warn: {
     backgroundColor: colors.warningSurface,
@@ -384,8 +372,8 @@ const s = StyleSheet.create({
   hint: { ...typography.caption, marginVertical: spacing.xs },
   row: { flexDirection: 'row', flexWrap: 'wrap' },
   btnGhost: {
-    borderColor: colors.primary,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.surface,
+
     borderRadius: radii.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.md,
@@ -403,5 +391,5 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
   },
-  startBtnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700', letterSpacing: 0.5 },
+  startBtnTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700', letterSpacing: 0.5 },
 });

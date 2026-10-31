@@ -1,14 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Image,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  type TextInputProps,
-} from 'react-native';
+import { Image, Modal, StyleSheet, type TextInputProps } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -513,12 +506,14 @@ const s = StyleSheet.create({
   saveBtn: {
     backgroundColor: colors.primary,
     borderRadius: radii.md,
-    padding: spacing.md,
+    minHeight: 52,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: spacing.lg,
     marginTop: spacing.lg,
   },
   disabled: { opacity: 0.6 },
-  saveTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  saveTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
   cancelBtn: { alignItems: 'center', minHeight: 44, justifyContent: 'center', marginTop: spacing.sm },
   cancelTxt: { ...typography.body, color: colors.primaryBright, fontWeight: '600' },
 });

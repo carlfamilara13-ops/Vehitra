@@ -1,13 +1,14 @@
-import React, { memo, useCallback, useMemo, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback } from 'react';
+import { StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
-import Svg, { Circle, Path } from 'react-native-svg';
 import type { RideRow } from '../../data/local/ridesStore';
-import { projectRoute, type RouteSketch, type SketchedPoint } from '../../domain/ride/sketch';
 import { formatDistanceM, formatSpeedMs, type Units } from '../../domain/units';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
 import { RIDE_STATUS_LABELS, rideRouteSegments } from './ridesView';
+import RideMapPreview from './RideMapPreview';
 
 const PREVIEW_HEIGHT = 148;
 
@@ -27,13 +28,6 @@ function rideTitle(ride: RideRow): string {
 
 function timeText(ride: RideRow): string {
   return new Date(ride.started_at).toLocaleTimeString();
-}
-
-function toPath(points: SketchedPoint[]): string {
-  if (points.length === 0) return '';
-  const [first, ...rest] = points;
-  const moves = rest.map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  return `M ${first.x.toFixed(1)} ${first.y.toFixed(1)} ${moves}`;
 }
 
 function needsReviewFlag(ride: RideRow): boolean {
@@ -91,65 +85,14 @@ function Metric({ value, label, easy }: { value: string; label: string; easy: bo
 
 // ------------------------------------------------------------------ route preview
 
-// Draws the saved route geometry the ride was finalized with — the same `route_segments` JSON
-// and projection the Ride Detail screen and the Dashboard's longest-rides card already use.
+// The route geometry is decoded from the saved ride record and displayed over the basemap.
 //
-// This project ships no MapLibre module and no map tile provider, so there are no tiles, no
-// provider attribution and no MapLibre logo to manage: the preview is the offline route drawn
-// on the dark surface, and it says so instead of pretending to be a live map.
 function RideRoutePreview({ ride, height = PREVIEW_HEIGHT }: { ride: RideRow; height?: number }) {
-  const [width, setWidth] = useState(0);
-
-  const onLayout = useCallback((e: LayoutChangeEvent) => {
-    const next = Math.round(e.nativeEvent.layout.width);
-    setWidth((prev) => (prev === next ? prev : next));
-  }, []);
-
-  const segments = useMemo(() => rideRouteSegments(ride), [ride]);
-  const sketch: RouteSketch | null = useMemo(() => {
-    if (width <= 0 || segments.length === 0) return null;
-    return projectRoute(segments, { width, height, padding: 14 });
-  }, [segments, width, height]);
-
-  const usable = sketch != null && !sketch.isEmpty;
-  const first = usable ? sketch.segments[0][0] : null;
-  const lastSeg = usable ? sketch.segments[sketch.segments.length - 1] : null;
-  const last = lastSeg ? lastSeg[lastSeg.length - 1] : null;
-
   return (
-    <View style={[s.preview, { height }]} onLayout={onLayout}>
-      {usable && first && last ? (
-        <>
-          <Svg width={width} height={height} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-            {sketch.segments.map((seg, i) => (
-              <Path
-                key={i}
-                d={toPath(seg)}
-                stroke={colors.primaryBright}
-                strokeWidth={2.5}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                fill="none"
-              />
-            ))}
-            <Circle cx={first.x} cy={first.y} r={4} fill={colors.success} />
-            <Circle cx={last.x} cy={last.y} r={4} fill={colors.danger} />
-          </Svg>
-          <Text style={s.previewNote} importantForAccessibility="no" accessibilityElementsHidden>
-            Offline route — shape only, no map
-          </Text>
-        </>
-      ) : width > 0 ? (
-        <View
-          style={s.previewEmpty}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        >
-          <Ionicons name="map-outline" size={22} color={colors.textMuted} />
-          <Text style={s.previewEmptyText}>Route preview unavailable</Text>
-        </View>
-      ) : null}
-    </View>
+    <RideMapPreview
+      segments={rideRouteSegments(ride)}
+      containerStyle={[s.preview, { height }]}
+    />
   );
 }
 
@@ -282,15 +225,6 @@ const s = StyleSheet.create({
     borderBottomColor: colors.border,
     borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  previewNote: {
-    position: 'absolute',
-    left: spacing.sm,
-    bottom: spacing.xs,
-    fontSize: 10,
-    color: colors.textMuted,
-  },
-  previewEmpty: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.xs },
-  previewEmptyText: { ...typography.caption },
 
   // Compact row
   row: {

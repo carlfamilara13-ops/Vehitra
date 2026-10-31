@@ -18,13 +18,20 @@ export type RemoteBrandRow = {
   name: string;
 };
 
+type EmbeddedRow<T> = T | T[] | null;
+
 export type RemoteIndexModelRow = {
   slug: string;
   name: string;
   is_generic: boolean;
   sort_order: number | string | null;
-  brand: { slug: string } | null;
-  vehicle_type: { code: string } | null;
+  brand: EmbeddedRow<{ slug: string }>;
+  vehicle_type: EmbeddedRow<{ code: string }>;
+};
+
+const firstEmbedded = <T>(value: EmbeddedRow<T>): T | null => {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value;
 };
 
 export function remoteBrandToIndex(row: RemoteBrandRow): CatalogIndexBrand {
@@ -32,12 +39,12 @@ export function remoteBrandToIndex(row: RemoteBrandRow): CatalogIndexBrand {
 }
 
 export function remoteModelToIndex(row: RemoteIndexModelRow): CatalogIndexModel {
-  const brandSlug = row.brand?.slug ?? null;
+  const brandSlug = firstEmbedded(row.brand)?.slug ?? null;
   const rawSort = row.sort_order == null ? 100 : Number(row.sort_order);
   return {
     slug: row.slug,
     brandSlug,
-    vehicleType: row.vehicle_type?.code ?? '',
+    vehicleType: firstEmbedded(row.vehicle_type)?.code ?? '',
     name: row.name,
     isGeneric: row.is_generic,
     sortOrder: Number.isFinite(rawSort) ? rawSort : Number.NaN,

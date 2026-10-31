@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -257,12 +259,12 @@ const s = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.surface,
+    backgroundColor: colors.surfaceRaised,
     borderColor: colors.border,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,
     paddingHorizontal: spacing.md,
-    height: 44,
+    minHeight: 48,
   },
   searchInput: {
     flex: 1,
@@ -283,8 +285,9 @@ const s = StyleSheet.create({
   },
   filterBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   filterText: { ...typography.label, color: colors.textMuted },
-  filterTextActive: { color: colors.background },
-  chips: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
+  filterTextActive: { color: colors.onPrimary },
+  chips: {
+    backgroundColor: colors.surface, flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   chip: {
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,

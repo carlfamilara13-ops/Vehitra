@@ -3,13 +3,25 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts } from 'expo-font';
 import { Rajdhani_700Bold } from '@expo-google-fonts/rajdhani';
+import { Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from '@expo-google-fonts/inter';
 import RootNavigator from './RootNavigator';
+import { PrefsProvider, usePrefs } from './prefs';
+
+function AppShell() {
+  const { appearance } = usePrefs();
+  return (
+    <>
+      <StatusBar style={appearance === 'light' ? 'dark' : 'light'} />
+      <RootNavigator />
+    </>
+  );
+}
 
 export default function App() {
   // Fonts are polish, not a gate. The app renders immediately and React Native substitutes the
   // system font until the display family resolves, so a slow or failed load can never leave the
   // user staring at a blank screen.
-  const [, fontError] = useFonts({ Rajdhani_700Bold });
+  const [, fontError] = useFonts({ Rajdhani_700Bold, Inter_400Regular, Inter_500Medium, Inter_600SemiBold, Inter_700Bold });
 
   useEffect(() => {
     if (fontError) {
@@ -19,8 +31,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style="light" />
-      <RootNavigator />
+      <PrefsProvider>
+        <AppShell />
+      </PrefsProvider>
     </SafeAreaProvider>
   );
 }

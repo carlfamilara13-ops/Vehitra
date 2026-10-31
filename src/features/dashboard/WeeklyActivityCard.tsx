@@ -1,11 +1,12 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import type { Units } from '../../domain/units';
 import { formatDistanceM } from '../../domain/units';
 import { buildWeeklyActivity, formatDurationS, type ActivityRide, type WeeklyActivity } from '../../domain/dashboard/activity';
-import GlassCard from '../../ui/GlassCard';
-import { colors, spacing, typography } from '../../ui/theme';
+import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
 
 type Props = {
@@ -26,7 +27,7 @@ export default function WeeklyActivityCard({ rides, units, nowMs }: Props) {
 
   if (week.isEmpty) {
     return (
-      <GlassCard>
+      <View style={s.card}>
         <View style={s.headRow}>
           <Text style={[typography.kicker]}>Last 7 days</Text>
         </View>
@@ -45,12 +46,12 @@ export default function WeeklyActivityCard({ rides, units, nowMs }: Props) {
             </View>
           ))}
         </View>
-      </GlassCard>
+      </View>
     );
   }
 
   return (
-    <GlassCard>
+    <View style={s.card}>
       <View style={s.headRow}>
         <Text style={typography.kicker}>Last 7 days</Text>
         {week.streakDays > 0 && (
@@ -102,11 +103,19 @@ export default function WeeklyActivityCard({ rides, units, nowMs }: Props) {
           </View>
         ))}
       </View>
-    </GlassCard>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.border,
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+  },
   headRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -123,7 +132,7 @@ const s = StyleSheet.create({
   strip: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xs },
   col: { alignItems: 'center', flex: 1 },
   dot: { width: 10, height: 10, borderRadius: 5 },
-  dotOn: { backgroundColor: colors.primaryBright },
+  dotOn: { backgroundColor: colors.primary },
   // Empty days keep a faint outline so the strip still reads as seven days, not blank space.
   dotEmpty: { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, backgroundColor: 'transparent' },
   dotTodayRing: { borderColor: colors.primaryBright, borderWidth: 1.5 },

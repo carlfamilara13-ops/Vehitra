@@ -1,13 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, type ColorValue, Alert, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import * as Crypto from 'expo-crypto';
@@ -230,7 +224,7 @@ export default function EquipmentScreen({ navigation, route }: Props) {
     );
   }
 
-  const levelColors: Record<string, { bg: string; fg: string }> = {
+  const levelColors: Record<string, { bg: ColorValue; fg: ColorValue }> = {
     ok: { bg: colors.surfaceRaised, fg: colors.textMuted },
     watch: { bg: colors.warningSurface, fg: colors.warningText },
     warn: { bg: 'rgba(255, 127, 152, 0.14)', fg: colors.danger },
@@ -464,11 +458,11 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: spacing.sm,
   },
-  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  btnPrimaryTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
   btnGhost: {
+    backgroundColor: colors.surface,
+
     alignSelf: 'flex-start',
-    borderColor: colors.primary,
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.sm,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
@@ -477,8 +471,8 @@ const s = StyleSheet.create({
   },
   btnGhostTxt: { ...typography.body, color: colors.primary, fontWeight: '600' },
   btnGhostSm: {
-    borderColor: colors.primary,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.surface,
+
     borderRadius: radii.sm,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,

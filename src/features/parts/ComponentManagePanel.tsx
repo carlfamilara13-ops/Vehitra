@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import * as Crypto from 'expo-crypto';
 import { getDb } from '../../data/local/db';
 import { deleteOverride, getOverride, upsertOverride } from '../../data/local/overrideStore';
@@ -466,10 +468,10 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginLeft: spacing.sm,
   },
-  smallBtnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  smallBtnTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
   smallGhost: {
-    borderColor: colors.border,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.surface,
+
     borderRadius: radii.sm,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
@@ -477,10 +479,11 @@ const s = StyleSheet.create({
   },
   smallGhostTxt: { ...typography.body, color: colors.textMuted },
   hint: { ...typography.caption, lineHeight: 18, marginBottom: spacing.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm },
+  chips: {
+    backgroundColor: colors.surface, flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm },
   chip: {
+    backgroundColor: colors.surface,
     borderColor: colors.glassBorder,
-    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.pill,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,

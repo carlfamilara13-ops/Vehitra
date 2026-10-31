@@ -1,5 +1,7 @@
 import React from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../ui/theme';
@@ -151,11 +153,6 @@ const s = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,
     paddingVertical: spacing.sm,
-    elevation: 6,
-    shadowColor: '#000000',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
   },
   section: {
     ...typography.kicker,

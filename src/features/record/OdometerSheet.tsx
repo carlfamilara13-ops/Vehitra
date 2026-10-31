@@ -1,13 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import {
-  Keyboard,
-  Modal,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Keyboard, Modal, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { VehicleRow } from '../../data/local/vehicleStore';
@@ -174,11 +168,6 @@ const s = StyleSheet.create({
     borderTopRightRadius: radii.xl,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
-    elevation: 16,
-    shadowColor: '#000000',
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -6 },
   },
   grabber: {
     alignSelf: 'center',
@@ -240,5 +229,5 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   saveDisabled: { opacity: 0.45 },
-  saveTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  saveTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
 });

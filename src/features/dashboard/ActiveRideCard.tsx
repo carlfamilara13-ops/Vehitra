@@ -1,5 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import type { RideRow } from '../../data/local/ridesStore';
 import type { Units } from '../../domain/units';
 import { formatDistanceM } from '../../domain/units';

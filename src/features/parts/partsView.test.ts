@@ -74,6 +74,7 @@ describe('partsView: search', () => {
     assert.equal(matchesQuery(item, 'OIL'), true);
     assert.equal(matchesQuery(item, 'oil'), true);
     assert.equal(matchesQuery(item, 'brake'), false);
+    assert.equal(matchesQuery({ ...item, category: 'brakes' }, 'brak'), true);
   });
 
   it('does not treat component codes as matching via unrelated substrings', () => {

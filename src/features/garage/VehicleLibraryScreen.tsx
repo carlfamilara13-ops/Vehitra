@@ -1,5 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { getDb } from '../../data/local/db';
@@ -373,10 +375,11 @@ export default function VehicleLibraryScreen({ navigation }: Props) {
 const s = StyleSheet.create({
   loading: { marginTop: spacing.xl },
   stepHint: { ...typography.label, color: colors.textMuted, marginBottom: spacing.sm, marginTop: spacing.sm },
-  chips: { flexDirection: 'row', flexWrap: 'wrap' },
+  chips: {
+    backgroundColor: colors.surface, flexDirection: 'row', flexWrap: 'wrap' },
   chip: {
-    borderColor: colors.border,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.surface,
+    borderColor: 'transparent',
     borderRadius: radii.pill,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
@@ -413,6 +416,7 @@ const s = StyleSheet.create({
   downloadBox: { marginTop: spacing.md },
   downloadDone: { ...typography.caption, color: colors.primary, marginBottom: spacing.sm },
   errorCard: {
+    backgroundColor: colors.surface,
     borderColor: colors.danger,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,
@@ -421,7 +425,7 @@ const s = StyleSheet.create({
   },
   errorTxt: { ...typography.body, color: colors.danger },
   btn: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.surface,
     borderRadius: radii.md,
     padding: spacing.md,
     alignItems: 'center',
@@ -436,10 +440,10 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginTop: spacing.lg,
   },
-  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  btnPrimaryTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
   btnGhost: {
-    borderColor: colors.primary,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.surface,
+
     borderRadius: radii.sm,
     paddingVertical: spacing.md,
     alignItems: 'center',

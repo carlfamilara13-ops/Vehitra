@@ -1,19 +1,6 @@
-﻿import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  AccessibilityInfo,
-  Animated,
-  Easing,
-  Image,
-  ImageBackground,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  useWindowDimensions,
-  type LayoutChangeEvent,
-  type ViewStyle,
-  type TextStyle,
-} from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AccessibilityInfo, Animated, Easing, Image, ImageBackground, StyleSheet, TouchableOpacity, View, useWindowDimensions, type LayoutChangeEvent, type ViewStyle, type TextStyle } from 'react-native';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import {
   buildDriverProfileView,
@@ -104,7 +91,7 @@ export default function DriverProfileCard({ doc, profile, profileUnavailable, on
         accessibilityLabel={`Personal driver profile${view.isComplete ? ` for ${view.name}` : ''}.`}
         accessibilityHint={back ? 'Shows the front of the profile card' : 'Shows the back of the profile card'}
         accessibilityState={{ expanded: back }}
-        style={[s.flipWrap, { height }]}
+        style={[s.flipWrap, s.flipWrapShadow, { height }]}
       >
         <Animated.View
           style={[s.face, s.front, { transform: [{ perspective: 1000 }, { rotateY: frontRotate }] }]}
@@ -271,6 +258,8 @@ function ProfileBackTemplate({
   const agencyCode = profile?.agency_code?.trim() || '';
   const licenseCodes = profile?.license_codes?.trim() || '';
   const conditions = profile?.conditions?.trim() || '';
+  const dlCode = ((profile as any)?.dl_code ?? '').trim();
+  const serialNumber = ((profile as any)?.serial_number ?? '').trim();
 
   return (
     <View style={s.templateContainer}>
@@ -281,6 +270,8 @@ function ProfileBackTemplate({
         {agencyCode ? <OverlayText text={agencyCode} config={layout.fields.agencyCode} unit={unit} /> : null}
         {licenseCodes ? <OverlayText text={licenseCodes} config={layout.fields.licenseCodes} unit={unit} /> : null}
         {conditions ? <OverlayText text={conditions} config={layout.fields.conditions} unit={unit} /> : null}
+        {dlCode ? <OverlayText text={dlCode} config={(layout.fields as any).dlCode} unit={unit} /> : null}
+        {serialNumber ? <OverlayText text={serialNumber} config={(layout.fields as any).serialNumber} unit={unit} /> : null}
       </ImageBackground>
     </View>
   );
@@ -298,10 +289,12 @@ const s = StyleSheet.create({
     borderRadius: radii.lg,
     overflow: 'hidden',
     backfaceVisibility: 'hidden',
-    elevation: 2,
   },
-  front: { backgroundColor: '#ffffff' },
-  back: { backgroundColor: '#ffffff' },
+  front: { backgroundColor: 'transparent' },
+  back: { backgroundColor: 'transparent' },
+  flipWrapShadow: {
+    boxShadow: [{ offsetX: 0, offsetY: 3, blurRadius: 9, color: 'rgba(0,0,0,0.16)' }],
+  },
   templateContainer: {
     flex: 1,
     width: '100%',

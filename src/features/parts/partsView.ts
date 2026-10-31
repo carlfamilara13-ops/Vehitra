@@ -115,10 +115,17 @@ export function summarize(statuses: Iterable<MaintenanceStatus>): StatusCounts {
 }
 
 // Case-insensitive search over the component's display name and its catalog code.
-export function matchesQuery(component: { componentCode: string; name: string }, rawQuery: string): boolean {
+export function matchesQuery(
+  component: { componentCode: string; name: string; category?: string },
+  rawQuery: string,
+): boolean {
   const query = rawQuery.trim().toLowerCase();
   if (!query) return true;
-  return component.name.toLowerCase().includes(query) || component.componentCode.toLowerCase().includes(query);
+  return (
+    component.name.toLowerCase().includes(query) ||
+    component.componentCode.toLowerCase().includes(query) ||
+    (component.category ?? '').toLowerCase().includes(query)
+  );
 }
 
 // Fraction of the track to fill (0..1). Clamps an overdue component (>100%) so the bar never

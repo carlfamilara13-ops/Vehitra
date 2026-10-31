@@ -12,8 +12,8 @@ export const TAB_BAR_HEIGHT = 56;
 // Gap between the bar and the screen edge (sides and, after the inset, the bottom). This is what
 // makes the bar float: without it the rounded surface would sit flush against the edge and read
 // as an ordinary bottom border.
-export const TAB_BAR_SIDE_INSET = 16;
-export const TAB_BAR_BOTTOM_GAP = 8;
+export const TAB_BAR_SIDE_INSET = 20;
+export const TAB_BAR_BOTTOM_GAP = 12;
 
 // Corner radius of the floating surface. Just under half the height, so the pill stays soft
 // without becoming a full capsule.

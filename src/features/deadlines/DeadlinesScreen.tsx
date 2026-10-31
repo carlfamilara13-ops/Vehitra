@@ -1,14 +1,8 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Switch,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { NeuToggle } from '../../ui/neu/NeuControls';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Crypto from 'expo-crypto';
 import { getDb } from '../../data/local/db';
@@ -274,13 +268,7 @@ export default function DeadlinesScreen() {
       <View style={s.card}>
         <View style={s.cardHead}>
           <Text style={s.cardTitle}>Notifications</Text>
-          <Switch
-            value={notifEnabled}
-            onValueChange={(v) => void toggleNotifications(v)}
-            trackColor={{ false: colors.surfaceRaised, true: colors.primary }}
-            thumbColor={colors.text}
-            accessibilityLabel="Reminder notifications"
-          />
+          <NeuToggle value={notifEnabled} onChange={(v) => void toggleNotifications(v)} label="Reminder notifications" />
         </View>
         {!adapter.available ? (
           <Text style={s.muted}>
@@ -338,13 +326,7 @@ export default function DeadlinesScreen() {
                 <Text style={s.cardTitle}>{row.label || DEADLINE_KIND_LABELS[row.kind as DeadlineKind] || row.kind}</Text>
                 <Text style={s.muted}>{vehicleName(row.user_vehicle_id) ?? 'All vehicles'}</Text>
               </View>
-              <Switch
-                value={row.enabled === 1}
-                onValueChange={(v) => void toggleEnabled(row, v)}
-                trackColor={{ false: colors.surfaceRaised, true: colors.primary }}
-                thumbColor={colors.text}
-                accessibilityLabel={`Reminders for ${row.label || row.kind}`}
-              />
+              <NeuToggle value={row.enabled === 1} onChange={(v) => void toggleEnabled(row, v)} label={`Reminders for ${row.label || row.kind}`} />
             </View>
             <Text style={[s.due, tone]}>
               Due {row.due_date} · {daysLabel(days)}
@@ -463,13 +445,7 @@ export default function DeadlinesScreen() {
 
           <View style={s.enabledRow}>
             <Text style={s.muted}>Reminders on</Text>
-            <Switch
-              value={form.enabled}
-              onValueChange={(v) => setForm({ ...form, enabled: v })}
-              trackColor={{ false: colors.surfaceRaised, true: colors.primary }}
-              thumbColor={colors.text}
-              accessibilityLabel="Reminders on"
-            />
+            <NeuToggle value={form.enabled} onChange={(v) => setForm({ ...form, enabled: v })} label="Reminders on" />
           </View>
 
           <View style={s.formActions}>
@@ -541,7 +517,7 @@ const s = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipTxt: { ...typography.caption, color: colors.textMuted },
-  chipTxtSelected: { color: colors.primaryInk, fontWeight: '700' },
+  chipTxtSelected: { color: colors.onPrimary, fontWeight: '700' },
   input: {
     backgroundColor: colors.surfaceRaised,
     borderColor: colors.border,
@@ -553,34 +529,38 @@ const s = StyleSheet.create({
     ...typography.body,
   },
   enabledRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md },
-  formActions: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.lg },
+  formActions: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.lg },
   btnPrimary: {
     backgroundColor: colors.primary,
     borderRadius: radii.sm,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.lg,
-    marginRight: spacing.md,
   },
-  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  btnPrimaryTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
   btnGhost: {
     alignSelf: 'flex-start',
-    borderColor: colors.primary,
+    borderColor: colors.primaryBright,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.sm,
+    minHeight: 44,
+    justifyContent: 'center',
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
-    marginRight: spacing.md,
   },
-  btnGhostTxt: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  btnGhostTxt: { ...typography.body, color: colors.primaryBright, fontWeight: '600' },
   btnGhostSm: {
-    borderColor: colors.primary,
+    borderColor: colors.primaryBright,
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.sm,
+    minHeight: 36,
+    justifyContent: 'center',
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     marginRight: spacing.sm,
   },
-  btnGhostSmTxt: { ...typography.caption, color: colors.primary, fontWeight: '600' },
+  btnGhostSmTxt: { ...typography.caption, color: colors.primaryBright, fontWeight: '600' },
   footnote: { ...typography.caption, textAlign: 'center', marginTop: spacing.sm, lineHeight: 16 },
 });

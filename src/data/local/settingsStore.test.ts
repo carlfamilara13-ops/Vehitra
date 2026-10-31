@@ -18,10 +18,20 @@ describe('app settings store', { skip: hasNodeSqlite() ? false : 'node:sqlite un
   });
 
   it('starts from the shipped defaults', async () => {
+    await assert.rejects(
+      () => updateAppSettings(db, { appearance: 'neon' as never }),
+      (e: unknown) => e instanceof MaintenanceValidationError,
+    );
     const s = await getAppSettings(db);
     assert.equal(s.units, 'metric');
     assert.equal(s.ui_mode, 'standard');
+    assert.equal(s.appearance, 'dark');
+    assert.equal(s.appearance, 'dark');
     assert.equal(s.notifications_enabled, 1);
+    assert.equal(s.maintenance_upcoming_enabled, 1);
+    assert.equal(s.maintenance_overdue_enabled, 1);
+    assert.equal(s.document_reminders_enabled, 1);
+    assert.equal(s.battery_reminders_enabled, 1);
     assert.equal(s.id, 1);
   });
 
@@ -40,10 +50,17 @@ describe('app settings store', { skip: hasNodeSqlite() ? false : 'node:sqlite un
     assert.equal(b.units, 'imperial'); // preserved
     assert.equal(b.ui_mode, 'easy');
     assert.equal(b.sync_status, 'pending');
-    const c = await updateAppSettings(db, { notifications_enabled: false }, T0 + 2);
+    const c = await updateAppSettings(db, { notifications_enabled: false, appearance: 'light' }, T0 + 2);
     assert.equal(c.notifications_enabled, 0);
     assert.equal(c.units, 'imperial');
     assert.equal(c.ui_mode, 'easy');
+    assert.equal(c.appearance, 'light');
+    assert.equal((await getAppSettings(db)).appearance, 'light'); // survives a fresh read
+    const d = await updateAppSettings(db, { maintenance_upcoming_enabled: false, document_reminders_enabled: false }, T0 + 3);
+    assert.equal(d.maintenance_upcoming_enabled, 0);
+    assert.equal(d.maintenance_overdue_enabled, 1);
+    assert.equal(d.document_reminders_enabled, 0);
+    assert.equal(d.battery_reminders_enabled, 1);
     assert.equal((await db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM app_settings'))?.n, 1);
   });
 

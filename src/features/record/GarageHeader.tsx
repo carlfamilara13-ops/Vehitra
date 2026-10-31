@@ -1,7 +1,9 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
-import GlassSurface from '../../ui/GlassSurface';
+
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
 
@@ -24,7 +26,7 @@ export default function GarageHeader({ onAddVehicle }: Props) {
       accessibilityHint="Opens the vehicle library to add a vehicle"
       style={s.press}
     >
-      <GlassSurface style={[s.btn, easy && s.easyBtn]}>
+      <View style={[s.btn, easy && s.easyBtn]}>
         <View style={s.row}>
           <Ionicons
             name="add"
@@ -35,13 +37,13 @@ export default function GarageHeader({ onAddVehicle }: Props) {
           />
           <Text style={[s.label, easy && s.easyLabel]}>Add Vehicle</Text>
         </View>
-      </GlassSurface>
+      </View>
     </TouchableOpacity>
   );
 }
 
 const s = StyleSheet.create({
-  press: { borderRadius: radii.xl },
+  press: { borderRadius: radii.md },
   btn: {
     minHeight: 44,
     justifyContent: 'center',
@@ -49,7 +51,8 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.md,
     // The shared 5% glass fill alone is thin over the dark background; a small dark wash
     // underneath keeps the label legible without turning the button into a solid chip.
-    backgroundColor: 'rgba(10, 10, 26, 0.55)',
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
   },
   easyBtn: { minHeight: 48 },
   row: { flexDirection: 'row', alignItems: 'center' },

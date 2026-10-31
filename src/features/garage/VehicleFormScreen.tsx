@@ -1,13 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import * as Crypto from 'expo-crypto';
 import { getDb } from '../../data/local/db';
@@ -337,10 +331,10 @@ const s = StyleSheet.create({
     marginBottom: spacing.sm,
     marginTop: spacing.md,
   },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm },
+  chips: {
+    backgroundColor: colors.surface, flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.sm },
   chip: {
-    borderColor: colors.border,
-    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: 'transparent',
     borderRadius: radii.pill,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
@@ -387,10 +381,10 @@ const s = StyleSheet.create({
     marginTop: spacing.xl,
   },
   btnDisabled: { opacity: 0.6 },
-  btnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  btnTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
   btnGhost: {
-    borderColor: colors.primary,
-    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.surface,
+
     borderRadius: radii.sm,
     paddingVertical: spacing.md,
     alignItems: 'center',

@@ -1,6 +1,13 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { remoteRowToPackRow, type RemotePackRow } from './catalogMap';
+import {
+  remoteBrandToIndex,
+  remoteModelToIndex,
+  remoteRowToPackRow,
+  type RemoteBrandRow,
+  type RemoteIndexModelRow,
+  type RemotePackRow,
+} from './catalogMap';
 
 const row = (over: Partial<RemotePackRow> = {}): RemotePackRow => ({
   interval_km: 1500,
@@ -53,5 +60,61 @@ describe('remote catalog row mapping', () => {
   it('leaves a missing component embed as an empty code so validation rejects the row', () => {
     const mapped = remoteRowToPackRow('m', 1, row({ component: null }));
     assert.equal(mapped.componentCode, '');
+  });
+});
+
+const brandRow = (over: Partial<RemoteBrandRow> = {}): RemoteBrandRow => ({
+  slug: 'honda',
+  name: 'Honda',
+  ...over,
+});
+
+const modelRow = (over: Partial<RemoteIndexModelRow> = {}): RemoteIndexModelRow => ({
+  slug: 'honda-click-125',
+  name: 'Click 125',
+  is_generic: false,
+  sort_order: 100,
+  brand: { slug: 'honda' },
+  vehicle_type: { code: 'motorcycle' },
+  ...over,
+});
+
+describe('remote catalog index mapping', () => {
+  it('maps a brand row onto the local index shape', () => {
+    assert.deepEqual(remoteBrandToIndex(brandRow()), { slug: 'honda', name: 'Honda' });
+  });
+
+  it('maps a branded model with its brand slug and vehicle type code', () => {
+    assert.deepEqual(remoteModelToIndex(modelRow({ sort_order: '25' })), {
+      slug: 'honda-click-125',
+      brandSlug: 'honda',
+      vehicleType: 'motorcycle',
+      name: 'Click 125',
+      isGeneric: false,
+      sortOrder: 25,
+    });
+  });
+
+  it('maps a generic model to a null brand', () => {
+    const mapped = remoteModelToIndex(
+      modelRow({ slug: 'generic-car', name: 'Other car', is_generic: true, brand: null, vehicle_type: { code: 'car' } }),
+    );
+    assert.equal(mapped.brandSlug, null);
+    assert.equal(mapped.isGeneric, true);
+    assert.equal(mapped.vehicleType, 'car');
+  });
+
+  it('defaults a missing sort order and marks junk as invalid for validation', () => {
+    assert.equal(remoteModelToIndex(modelRow({ sort_order: null })).sortOrder, 100);
+    assert.ok(Number.isNaN(remoteModelToIndex(modelRow({ sort_order: 'junk' })).sortOrder));
+    assert.equal(remoteModelToIndex(modelRow({ vehicle_type: null })).vehicleType, '');
+  });
+
+  it('normalizes embedded relations returned as arrays', () => {
+    const mapped = remoteModelToIndex(
+      modelRow({ brand: [{ slug: 'honda' }], vehicle_type: [{ code: 'motorcycle' }] }),
+    );
+    assert.equal(mapped.brandSlug, 'honda');
+    assert.equal(mapped.vehicleType, 'motorcycle');
   });
 });

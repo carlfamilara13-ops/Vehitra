@@ -1,12 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, type ColorValue, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,7 +19,7 @@ import { getComponentDefinition } from '../../domain/maintenance/components';
 import { distanceUnit, KM_PER_MILE } from '../../domain/units';
 import Screen from '../../ui/Screen';
 import Placeholder from '../../ui/Placeholder';
-import GlassSurface from '../../ui/GlassSurface';
+
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { tabBarBottomClearance } from '../../ui/tabBarLayout';
 import type { RootTabParamList } from '../../app/RootNavigator';
@@ -45,11 +40,9 @@ import {
   type StatusTone,
 } from './partsView';
 
-const PARTS_BG = require('../../../assets/appBG.jpg');
-
 type Props = BottomTabScreenProps<RootTabParamList, 'Parts'>;
 
-const TONE_COLORS: Record<StatusTone, string> = {
+const TONE_COLORS: Record<StatusTone, ColorValue> = {
   good: colors.successText,
   due: colors.warningText,
   overdue: colors.dangerText,
@@ -57,12 +50,12 @@ const TONE_COLORS: Record<StatusTone, string> = {
   off: colors.textMuted,
 };
 
-const TONE_PILL: Record<StatusTone, { bg: string; border: string }> = {
-  good: { bg: 'rgba(77, 255, 196, 0.12)', border: 'rgba(77, 255, 196, 0.34)' },
-  due: { bg: 'rgba(255, 196, 107, 0.12)', border: 'rgba(255, 196, 107, 0.35)' },
-  overdue: { bg: 'rgba(255, 127, 152, 0.14)', border: 'rgba(255, 127, 152, 0.38)' },
-  unknown: { bg: 'rgba(255, 255, 255, 0.05)', border: colors.glassBorder },
-  off: { bg: 'rgba(255, 255, 255, 0.05)', border: colors.glassBorder },
+const TONE_PILL: Record<StatusTone, { bg: ColorValue; border: ColorValue }> = {
+  good: { bg: colors.surfaceRaised, border: 'transparent' },
+  due: { bg: colors.surfaceRaised, border: 'transparent' },
+  overdue: { bg: colors.surfaceRaised, border: 'transparent' },
+  unknown: { bg: colors.surfaceRaised, border: 'transparent' },
+  off: { bg: colors.surfaceRaised, border: 'transparent' },
 };
 
 const CATEGORY_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
@@ -91,6 +84,8 @@ export default function PartsScreen({ navigation }: Props) {
   const [items, setItems] = useState<ComponentMaintenance[]>([]);
   const [query, setQuery] = useState('');
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -128,6 +123,33 @@ export default function PartsScreen({ navigation }: Props) {
 
   const counts = useMemo(() => summarize(items.map((i) => i.evaluation.status)), [items]);
   const filtered = useMemo(() => items.filter((i) => matchesQuery(i, query)), [items, query]);
+  const attentionItems = useMemo(
+    () =>
+      items
+        .filter((item) => item.evaluation.status === 'overdue' || item.evaluation.status === 'due_soon')
+        .sort((a, b) => Number(b.evaluation.status === 'overdue') - Number(a.evaluation.status === 'overdue')),
+    [items],
+  );
+  const categories = useMemo(() => {
+    const grouped = new Map<string, ComponentMaintenance[]>();
+    for (const item of items) {
+      const group = grouped.get(item.category) ?? [];
+      group.push(item);
+      grouped.set(item.category, group);
+    }
+    return Array.from(grouped, ([code, components]) => ({ code, components }));
+  }, [items]);
+  const renderComponent = (item: ComponentMaintenance) => (
+    <ComponentCard
+      key={item.componentCode}
+      item={item}
+      vehicleId={vehicle!.id}
+      defaultOdometerKm={vehicle!.odometer_km}
+      expanded={expanded === item.componentCode}
+      onToggle={() => setExpanded((cur) => (cur === item.componentCode ? null : item.componentCode))}
+      onSaved={load}
+    />
+  );
 
   return (
     <Screen
@@ -135,19 +157,17 @@ export default function PartsScreen({ navigation }: Props) {
       subtitle="Maintenance overview"
       keyboardShouldPersistTaps="handled"
       contentStyle={{ paddingBottom: tabBarBottomClearance(insets.bottom) + spacing.lg }}
-      backgroundImage={PARTS_BG}
-      backgroundImageStyle={s.bgImage}
     >
       {loading ? (
         <ActivityIndicator color={colors.primary} style={s.loading} />
       ) : error ? (
-        <GlassSurface style={[s.card, s.errorCard]}>
+        <View style={[s.card, s.errorCard]}>
           <Text style={s.cardTitle}>Could not read maintenance</Text>
           <Text style={s.muted}>{error}</Text>
           <TouchableOpacity style={s.btnGhost} onPress={() => void load()} accessibilityRole="button">
             <Text style={s.btnGhostTxt}>Retry</Text>
           </TouchableOpacity>
-        </GlassSurface>
+        </View>
       ) : !vehicle ? (
         <>
           <Placeholder
@@ -164,7 +184,7 @@ export default function PartsScreen({ navigation }: Props) {
         </>
       ) : (
         <>
-          <GlassSurface style={s.vehicleCard}>
+          <View style={s.vehicleCard}>
             <View style={s.vehicleHead}>
               <View style={s.vehicleText}>
                 <Text style={s.kicker}>{typeLabel(vehicle)}</Text>
@@ -182,9 +202,9 @@ export default function PartsScreen({ navigation }: Props) {
               currentKm={vehicle.odometer_km}
               onSaved={load}
             />
-          </GlassSurface>
+          </View>
 
-          <GlassSurface style={s.card}>
+          <View style={s.card}>
             <View style={s.sectionHead}>
               <Text style={s.sectionTitle}>Overview</Text>
               <Text style={s.sectionMeta}>{counts.total} components</Text>
@@ -203,7 +223,7 @@ export default function PartsScreen({ navigation }: Props) {
                 Unknown means there is not enough recorded history yet — it is not a pass.
               </Text>
             )}
-          </GlassSurface>
+          </View>
 
           <View style={s.searchWrap}>
             <Ionicons
@@ -235,30 +255,108 @@ export default function PartsScreen({ navigation }: Props) {
             )}
           </View>
 
-          {items.length === 0 ? (
-            <Placeholder
-              title="No components"
-              message="No maintenance components apply to this vehicle type."
-            />
-          ) : filtered.length === 0 ? (
+          {query.trim() ? (
+            filtered.length === 0 ? (
             <Placeholder
               title="No matches"
               message={`No components match "${query.trim()}". Try another name or code.`}
             />
           ) : (
-            filtered.map((item) => (
-              <ComponentCard
-                key={item.componentCode}
-                item={item}
-                vehicleId={vehicle.id}
-                defaultOdometerKm={vehicle.odometer_km}
-                expanded={expanded === item.componentCode}
-                onToggle={() =>
-                  setExpanded((cur) => (cur === item.componentCode ? null : item.componentCode))
-                }
-                onSaved={load}
-              />
-            ))
+              filtered.map(renderComponent)
+            )
+          ) : !libraryOpen ? (
+            <>
+              <View style={s.sectionHead}>
+                <Text style={s.sectionTitle}>Needs attention</Text>
+                <Text style={s.sectionMeta}>{attentionItems.length}</Text>
+              </View>
+              {attentionItems.length === 0 ? (
+                <View style={[s.card, s.emptyCard]}>
+                  <Ionicons name="checkmark-circle-outline" size={24} color={colors.successText} />
+                  <Text style={s.cardTitle}>Nothing due right now</Text>
+                  <Text style={s.muted}>No upcoming or overdue items with a usable interval.</Text>
+                </View>
+              ) : (
+                attentionItems.map(renderComponent)
+              )}
+              <TouchableOpacity
+                style={s.browseButton}
+                onPress={() => { setLibraryOpen(true); setSelectedCategory(null); }}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Browse all parts by category"
+              >
+                <View>
+                  <Text style={s.browseTitle}>Browse all parts</Text>
+                  <Text style={s.browseHint}>Explore this vehicle's component categories</Text>
+                </View>
+                <Ionicons name="arrow-forward" size={20} color={colors.primaryBright} />
+              </TouchableOpacity>
+            </>
+          ) : selectedCategory ? (
+            <>
+              <TouchableOpacity
+                style={s.libraryBack}
+                onPress={() => setSelectedCategory(null)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Back to parts categories"
+              >
+                <Ionicons name="chevron-back" size={18} color={colors.primaryBright} />
+                <Text style={s.libraryBackText}>All categories</Text>
+              </TouchableOpacity>
+              <View style={s.sectionHead}>
+                <Text style={s.sectionTitle}>{categoryLabel(selectedCategory)}</Text>
+                <Text style={s.sectionMeta}>
+                  {categories.find((category) => category.code === selectedCategory)?.components.length ?? 0} parts
+                </Text>
+              </View>
+              {items.filter((item) => item.category === selectedCategory).map(renderComponent)}
+            </>
+          ) : (
+            <>
+              <View style={s.sectionHead}>
+                <Text style={s.sectionTitle}>Parts library</Text>
+                <Text style={s.sectionMeta}>{items.length} components</Text>
+              </View>
+              {categories.length === 0 ? (
+                <Placeholder title="No components" message="No maintenance components apply to this vehicle type." />
+              ) : categories.map(({ code, components }) => {
+                const attentionCount = components.filter((item) =>
+                  item.evaluation.status === 'overdue' || item.evaluation.status === 'due_soon',
+                ).length;
+                return (
+                  <TouchableOpacity
+                    key={code}
+                    style={s.categoryCard}
+                    onPress={() => setSelectedCategory(code)}
+                    activeOpacity={0.8}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${categoryLabel(code)}, ${components.length} components${attentionCount ? `, ${attentionCount} need attention` : ''}`}
+                  >
+                    <View style={s.categoryGlyph}>
+                      <Ionicons name={CATEGORY_ICONS[code] ?? 'build-outline'} size={20} color={colors.primaryBright} />
+                    </View>
+                    <View style={s.categoryCopy}>
+                      <Text style={s.categoryTitle}>{categoryLabel(code)}</Text>
+                      <Text style={s.categoryMeta}>{components.length} components</Text>
+                    </View>
+                    {attentionCount > 0 && <Text style={s.attentionCount}>{attentionCount} due</Text>}
+                    <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity
+                style={s.libraryBack}
+                onPress={() => setLibraryOpen(false)}
+                activeOpacity={0.75}
+                accessibilityRole="button"
+                accessibilityLabel="Back to maintenance overview"
+              >
+                <Ionicons name="chevron-back" size={18} color={colors.primaryBright} />
+                <Text style={s.libraryBackText}>Maintenance overview</Text>
+              </TouchableOpacity>
+            </>
           )}
 
           <Text style={s.footnote}>
@@ -393,7 +491,7 @@ function ComponentCard({
   const icon = CATEGORY_ICONS[item.category] ?? 'build-outline';
 
   return (
-    <GlassSurface style={[s.card, tone === 'overdue' && s.cardOverdue]}>
+    <View style={[s.card, tone === 'overdue' && s.cardOverdue]}>
       <View style={s.cardHead}>
         <View style={[s.categoryIcon, { borderColor: pill.border, backgroundColor: pill.bg }]}>
           <Ionicons
@@ -468,27 +566,85 @@ function ComponentCard({
           onSaved={onSaved}
         />
       )}
-    </GlassSurface>
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  bgImage: {
-    transform: [{ scale: 0.4 }, { translateX: -1440 }, { translateY: -2550 }],
-    opacity: 0.9,
-  },
   loading: { marginTop: spacing.xl },
   card: {
     padding: spacing.lg,
     marginTop: spacing.md,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    borderColor: 'transparent',
+    borderWidth: StyleSheet.hairlineWidth,
   },
-  cardOverdue: { borderColor: 'rgba(255, 127, 152, 0.45)' },
-  errorCard: { borderColor: colors.danger },
+  emptyCard: { alignItems: 'flex-start' },
+  browseButton: {
+    minHeight: 64,
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    borderColor: 'transparent',
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  browseTitle: { ...typography.heading, fontSize: 17 },
+  browseHint: { ...typography.caption, marginTop: spacing.xs, lineHeight: 18 },
+  libraryBack: {
+    minHeight: 48,
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    marginTop: spacing.md,
+  },
+  libraryBackText: { ...typography.label, color: colors.primaryBright },
+  categoryCard: {
+    minHeight: 72,
+    marginTop: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radii.lg,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  categoryGlyph: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.md,
+    backgroundColor: colors.primaryTint,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  categoryCopy: { flex: 1 },
+  categoryTitle: { ...typography.heading, fontSize: 16 },
+  categoryMeta: { ...typography.caption, marginTop: spacing.xs },
+  attentionCount: { ...typography.caption, color: colors.warningText },
+  cardOverdue: { borderColor: colors.dangerText, borderWidth: 1.5 },
+  errorCard: {
+    backgroundColor: colors.surface, borderColor: colors.danger },
   cardTitle: { ...typography.heading, fontSize: 16 },
   muted: { ...typography.body, color: colors.textMuted, lineHeight: 20, marginTop: spacing.sm },
   note: { ...typography.caption, lineHeight: 18, marginTop: spacing.sm },
 
-  vehicleCard: { padding: spacing.lg },
+  vehicleCard: {
+    padding: spacing.lg,
+    marginTop: spacing.md,
+    borderRadius: radii.xl,
+    backgroundColor: colors.surface,
+    borderColor: 'transparent',
+    borderWidth: StyleSheet.hairlineWidth,
+  },
   vehicleHead: { flexDirection: 'row', alignItems: 'flex-start' },
   vehicleText: { flex: 1, paddingRight: spacing.md },
   kicker: { ...typography.kicker, color: colors.primaryBright },
@@ -501,7 +657,7 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: colors.primaryTint,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(96, 239, 255, 0.42)',
+    borderColor: 'transparent',
   },
 
   odo: {
@@ -517,8 +673,6 @@ const s = StyleSheet.create({
   odoUnit: {
     ...typography.caption,
     fontSize: 12,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
     color: colors.textMuted,
     marginLeft: spacing.sm,
   },
@@ -528,10 +682,11 @@ const s = StyleSheet.create({
   sectionTitle: { ...typography.heading, fontSize: 16 },
   sectionMeta: { ...typography.caption },
   metrics: { flexDirection: 'row', marginTop: spacing.md, gap: spacing.sm },
-   metric: {
+  metric: {
     flex: 1,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.md,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.xs,
@@ -542,23 +697,22 @@ const s = StyleSheet.create({
   metricValue: { ...typography.metric, fontSize: 20 },
   metricLabel: {
     ...typography.caption,
-    fontSize: 10,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
+    fontSize: 12,
     marginTop: spacing.xs,
     textAlign: 'center',
   },
 
-   searchWrap: {
+  searchWrap: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    borderRadius: radii.pill,
+    backgroundColor: colors.surfaceRaised,
+    borderColor: colors.border,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.lg,
     paddingHorizontal: spacing.md,
     marginTop: spacing.md,
-    minHeight: 44,
+    minHeight: 48,
   },
   searchInput: {
     flex: 1,
@@ -605,31 +759,32 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginLeft: spacing.sm,
   },
-  btnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  btnTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
   disabled: { opacity: 0.6 },
   track: {
-    height: 6,
+    height: 12,
+    padding: 2,
     borderRadius: radii.pill,
-    backgroundColor: 'rgba(255, 255, 255, 0.10)',
+    backgroundColor: colors.surfaceRaised,
     marginTop: spacing.md,
     overflow: 'hidden',
   },
-  fill: { height: 6, borderRadius: radii.pill },
+  fill: { height: 8, borderRadius: radii.pill },
   manageBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.xs,
     minHeight: 40,
-    borderColor: 'rgba(96, 239, 255, 0.42)',
+    borderColor: 'transparent',
     borderWidth: StyleSheet.hairlineWidth,
     borderRadius: radii.pill,
     paddingVertical: spacing.sm,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
-    backgroundColor: colors.primaryTint,
+    backgroundColor: colors.surface,
   },
-  manageBtnActive: { backgroundColor: colors.surfaceRaised },
+  manageBtnActive: { backgroundColor: colors.surface },
   manageTxt: { ...typography.label, color: colors.primaryBright, fontWeight: '600' },
   btn: {
     backgroundColor: colors.primary,
@@ -640,10 +795,11 @@ const s = StyleSheet.create({
   },
   btnGhost: {
     alignSelf: 'flex-start',
-    borderColor: 'rgba(96, 239, 255, 0.42)',
-    borderWidth: StyleSheet.hairlineWidth,
-    borderRadius: radii.sm,
-    paddingVertical: spacing.sm,
+    borderColor: 'transparent',
+    borderWidth: 0,
+    borderRadius: radii.md,
+    backgroundColor: colors.surface,
+    paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     marginTop: spacing.md,
   },

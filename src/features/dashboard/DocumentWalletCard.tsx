@@ -1,5 +1,8 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import type { ColorValue } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import type { WalletDoc } from '../../domain/dashboard/wallet';
 import type { DriverProfile } from '../../domain/driverProfile/profile';
@@ -17,7 +20,7 @@ type Props = {
   onManage: () => void;
 };
 
-const PHASE_COLOR: Record<WalletDoc['phase'], string> = {
+const PHASE_COLOR: Record<WalletDoc['phase'], ColorValue> = {
   overdue: colors.danger,
   due_soon: colors.warningText,
   upcoming: colors.textMuted,
@@ -108,16 +111,16 @@ const s = StyleSheet.create({
     padding: spacing.lg,
   },
   registration: {
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
     borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassBorder,
   },
   docHead: { flexDirection: 'row', alignItems: 'center' },
   badge: {
-    width: 28,
-    height: 28,
+    width: 32,
+    height: 32,
     borderRadius: radii.sm,
-    backgroundColor: colors.primaryTint,
+    backgroundColor: colors.surfaceRaised,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: spacing.sm,

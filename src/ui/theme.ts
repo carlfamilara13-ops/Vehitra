@@ -1,41 +1,50 @@
-import type { TextStyle } from 'react-native';
+import { DynamicColorIOS, Platform, PlatformColor, type ColorValue } from 'react-native';
 
-// Shared design tokens mirrored from the web console palette: deep navy surfaces, neon green
-// primary actions, cyan accent text, and light text. Solid primary buttons use `primaryInk`.
+// Shared semantic colors. Android resolves app-defined DayNight theme attributes, while iOS uses
+// native dynamic colors. Because these tokens remain dynamic ColorValues, existing StyleSheet
+// declarations across all screens follow Appearance.setColorScheme without per-screen rewrites.
+function themedColor(token: string, light: string, dark: string): ColorValue {
+  if (Platform.OS === 'android') return PlatformColor(`?attr/vehitra${token}`);
+  if (Platform.OS === 'ios') return DynamicColorIOS({ light, dark });
+  return dark;
+}
+
 export const colors = {
-  background: '#0A0A1A',
-  surface: '#11152A',
-  surfaceRaised: '#171C35',
-  border: '#252C4A',
-  primary: '#00FF87',
-  primaryPressed: '#00D96F',
-  primaryInk: '#041810',
-  // Cyan accent used by the web console for links, selected states, and secondary emphasis.
-  primaryBright: '#60EFFF',
-  text: '#E9F1FF',
-  textMuted: '#93A0BF',
-  danger: '#FF7F98',
-  dangerSolid: '#A50F31',
-  warningSurface: '#2B210D',
-  warningText: '#FFC46B',
-  success: '#4DFFC4',
-  successText: '#7BFFD8',
-  dangerText: '#FF7F98',
-  // Tinted wash for emphasis (active tab, selected row). Keeps "active" from depending on a hue
-  // change alone, and stays legible against the near-black background at small sizes.
-  primaryTint: 'rgba(0, 255, 135, 0.14)',
-  // Glass surface layers
+  background: themedColor('Background', '#E8EDF4', '#202228'),
+  surface: themedColor('Surface', '#E8EDF4', '#202228'),
+  surfaceRaised: themedColor('SurfaceRaised', '#E8EDF4', '#202228'),
+  border: themedColor('Border', '#C9D2E0', '#15171B'),
+  primary: themedColor('Primary', '#1672FF', '#3B82FF'),
+  primaryPressed: themedColor('PrimaryPressed', '#125DCE', '#316BE0'),
+  primaryInk: themedColor('PrimaryInk', '#FFFFFF', '#0B0D12'),
+  primaryBright: themedColor('PrimaryBright', '#175DCC', '#75A6FF'),
+  text: themedColor('Text', '#1C2430', '#F1F3F7'),
+  textMuted: themedColor('TextMuted', '#515C6E', '#B6BECC'),
+  danger: themedColor('Danger', '#C51F43', '#FF5C7A'),
+  dangerSolid: themedColor('DangerSolid', '#A50F31', '#A50F31'),
+  warningSurface: themedColor('WarningSurface', '#F3E6CC', '#3B372C'),
+  warningText: themedColor('WarningText', '#A45D00', '#FFD166'),
+  success: themedColor('Success', '#008A5B', '#48E39A'),
+  successText: themedColor('SuccessText', '#008A5B', '#48E39A'),
+  dangerText: themedColor('DangerText', '#C51F43', '#FF5C7A'),
+  primaryTint: themedColor('PrimaryTint', '#D8E7FF', '#252E43'),
+  // Transparent panels stay transparent in both schemes; their outline and sheen adapt.
   glassFill: 'transparent',
   glassPanel: 'transparent',
-  glassSheen: 'rgba(255, 255, 255, 0.08)',
-  glassBorder: 'rgba(205, 222, 255, 0.28)',
+  glassSheen: themedColor('GlassSheen', 'rgba(255,255,255,0.58)', 'rgba(255,255,255,0.08)'),
+  glassBorder: themedColor('GlassBorder', 'rgba(75,101,145,0.24)', 'rgba(205,222,255,0.28)'),
 } as const;
 
 // Display face for titles, headings and metrics. Loaded in App.tsx through expo-font; while a
 // family has not resolved yet React Native falls back to the system font, so a slow or failed
 // load degrades instead of blocking the UI.
 export const fonts = {
+  // Brand wordmark only (VEHITRA). All other UI text is Inter, see ./neu/neuTheme.ts.
   display: 'Rajdhani_700Bold',
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
 } as const;
 
 export const spacing = {
@@ -48,11 +57,10 @@ export const spacing = {
 } as const;
 
 export const radii = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  // 20px, the glass-card reference radius.
-  xl: 20,
+  sm: 10,
+  md: 16,
+  lg: 22,
+  xl: 30,
   pill: 999,
 } as const;
 
@@ -67,26 +75,13 @@ export const motion = {
 
 export const typography: Record<
   'title' | 'heading' | 'metric' | 'wordmark' | 'kicker' | 'body' | 'label' | 'caption',
-  TextStyle
+  import('react-native').TextStyle
 > = {
-  // The display styles carry their weight in the loaded family itself, so they set no
-  // `fontWeight`: asking a system for a weight the family does not define drops back to regular
-  // on Android. On a device that has not finished loading fonts they render in the system font.
-  title: { fontFamily: fonts.display, fontSize: 24, color: colors.text },
-  heading: { fontFamily: fonts.display, fontSize: 18, color: colors.text },
-  metric: { fontFamily: fonts.display, fontSize: 26, color: colors.text },
-  // Brand wordmark. Wide tracking is what separates a logotype from a heading, so this is the
-  // only place the display face is tracked out.
+  title: { fontFamily: fonts.bold, fontSize: 24, color: colors.text },
+  heading: { fontFamily: fonts.semibold, fontSize: 18, color: colors.text },
+  metric: { fontFamily: fonts.bold, fontSize: 26, color: colors.text, fontVariant: ['tabular-nums'] },
   wordmark: { fontFamily: fonts.display, fontSize: 26, letterSpacing: 2, color: colors.text },
-  // Small uppercase section label. Deliberately neutral so the live/recording state can raise
-  // it to `primaryBright` without a second token.
-  kicker: {
-    fontFamily: fonts.display,
-    fontSize: 13,
-    letterSpacing: 1.8,
-    textTransform: 'uppercase',
-    color: colors.textMuted,
-  },
+  kicker: { fontFamily: fonts.semibold, fontSize: 13, color: colors.textMuted },
   body: { fontSize: 15, fontWeight: '400', color: colors.text },
   label: { fontSize: 13, fontWeight: '600', color: colors.text },
   caption: { fontSize: 12, fontWeight: '400', color: colors.textMuted },

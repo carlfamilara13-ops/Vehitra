@@ -1,5 +1,7 @@
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
@@ -51,9 +53,7 @@ const s = StyleSheet.create({
     borderRadius: radii.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceRaised,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
   easyWordmark: { fontSize: 30 },
   easyProfile: { width: 52, height: 52 },

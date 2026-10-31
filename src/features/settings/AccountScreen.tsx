@@ -1,12 +1,7 @@
 import React, { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import Screen from '../../ui/Screen';
@@ -353,13 +348,26 @@ const s = StyleSheet.create({
   btnPrimary: {
     backgroundColor: colors.primary,
     borderRadius: radii.sm,
-    paddingVertical: spacing.sm + 2,
+    minHeight: 48,
+    justifyContent: 'center',
     alignItems: 'center',
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.lg,
     marginTop: spacing.lg,
   },
-  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
-  btnGhost: { alignItems: 'center', paddingVertical: spacing.sm + 2, marginTop: spacing.xs },
-  btnGhostTxt: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  btnPrimaryTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
+  btnGhost: {
+    alignItems: 'center',
+    borderColor: colors.primaryBright,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderRadius: radii.sm,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: spacing.sm + 2,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.md,
+  },
+  btnGhostTxt: { ...typography.body, color: colors.primaryBright, fontWeight: '600' },
   btnDisabled: { opacity: 0.6 },
   reportBox: {
     backgroundColor: colors.surfaceRaised,

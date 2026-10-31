@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { DarkTheme, NavigationContainer, type Theme } from '@react-navigation/native';
+import { DarkTheme, DefaultTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { createBottomTabNavigator, type BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -17,12 +17,12 @@ import RideDetailScreen from '../features/rides/RideDetailScreen';
 import EquipmentScreen from '../features/garage/EquipmentScreen';
 import DeadlinesScreen from '../features/deadlines/DeadlinesScreen';
 import AccountScreen from '../features/settings/AccountScreen';
-import { PrefsProvider } from './prefs';
-import { colors } from '../ui/theme';
-import GlassTabBarBackground from '../ui/GlassTabBarBackground';
+import NeuTabBarBackground from '../ui/neu/NeuTabBarBackground';
+import { useNeu } from '../ui/neu/useNeu';
+import { usePrefs } from './prefs';
+import AccentGradient from '../ui/neu/AccentGradient';
 import {
   TAB_BAR_BOTTOM_GAP,
-  TAB_BAR_HEIGHT,
   TAB_BAR_RADIUS,
   TAB_BAR_SIDE_INSET,
 } from '../ui/tabBarLayout';
@@ -70,19 +70,6 @@ const hiddenTabOptions: BottomTabNavigationOptions = {
   tabBarItemStyle: { display: 'none' },
 };
 
-const navTheme: Theme = {
-  ...DarkTheme,
-  colors: {
-    ...DarkTheme.colors,
-    primary: colors.primary,
-    background: colors.background,
-    card: colors.surface,
-    text: colors.text,
-    border: colors.border,
-    notification: colors.primary,
-  },
-};
-
 // The five destinations the bar actually shows. Record sits in the middle and is the app's one
 // primary action; the other four are equal-weight destinations.
 type VisibleTab = 'Dashboard' | 'Rides' | 'Record' | 'Parts' | 'Settings';
@@ -100,19 +87,35 @@ const TAB_ICONS: Record<
   Settings: { active: 'settings', inactive: 'settings-outline' },
 };
 
-// The bar is capped at a fixed height by the navigator (49dp by default) instead of being sized
-// to its contents, so anything larger than a plain glyph needs an explicit height. This is the
-// icon block plus its label plus padding; the safe-area inset goes on top because a custom
-// height replaces the navigator's own inset arithmetic rather than extending it.
+// A compact floating icon dock with a 48dp interaction target for each destination.
 const TAB_BAR_CONTENT_HEIGHT = 56;
 
 // Record is the primary action, so it gets a filled button rather than a line glyph. Focus reads
 // as a fill change (tinted → solid) as well as a colour change, so the active state does not
 // depend on hue alone. It keeps its visible label, which is what the screen reader reads.
 function RecordButton({ focused }: { focused: boolean }) {
+  const n = useNeu();
+  // Raised accent circle (the reference's accent button role). Focus adds a dark ring glyph
+  // change (filled vs outlined) so state does not rely on colour alone.
   return (
-    <View style={[s.record, focused ? s.recordOn : s.recordOff]}>
-      <Ionicons name="ellipse" size={11} color={focused ? colors.primaryInk : colors.primaryBright} />
+    <View style={[s.record, n.surface('raisedSubtle'), { backgroundColor: n.c.accent }]}>
+      <Ionicons name={focused ? 'radio-button-on' : 'radio-button-off'} size={18} color={n.c.onAccent} />
+    </View>
+  );
+}
+
+function TabGlyph({ name, focused, color, size }: { name: VisibleTab; focused: boolean; color: string; size: number }) {
+  const n = useNeu();
+  const icon = focused ? TAB_ICONS[name as Exclude<VisibleTab, 'Record'>].active : TAB_ICONS[name as Exclude<VisibleTab, 'Record'>].inactive;
+  // Active tab sits in an inset dish with an accent glyph; inactive tabs are plain.
+  return focused ? (
+    <View style={[s.dish, s.activeDish, { backgroundColor: 'transparent' }]}>
+      <AccentGradient radius={16} />
+      <Ionicons name={icon} size={size} color={n.c.onAccent} />
+    </View>
+  ) : (
+    <View style={s.dish}>
+      <Ionicons name={icon} size={size} color={color} />
     </View>
   );
 }
@@ -120,27 +123,33 @@ function RecordButton({ focused }: { focused: boolean }) {
 const tabBarIcon =
   (name: VisibleTab): BottomTabNavigationOptions['tabBarIcon'] =>
   ({ focused, color, size }) =>
-    name === 'Record' ? (
-      <RecordButton focused={focused} />
-    ) : (
-      <Ionicons
-        name={focused ? TAB_ICONS[name].active : TAB_ICONS[name].inactive}
-        size={size}
-        color={color}
-      />
-    );
+    name === 'Record' ? <RecordButton focused={focused} /> : <TabGlyph name={name} focused={focused} color={color as string} size={size} />;
 
 export default function RootNavigator() {
   const insets = useSafeAreaInsets();
+  const { appearance } = usePrefs();
+  const n = useNeu();
+  const baseNavigationTheme = appearance === 'light' ? DefaultTheme : DarkTheme;
+  const navTheme = useMemo<Theme>(() => ({
+    ...baseNavigationTheme,
+    colors: {
+      ...baseNavigationTheme.colors,
+      primary: n.c.accent,
+      background: n.c.bg,
+      card: n.c.surface,
+      text: n.c.text,
+      border: n.c.shadowDark,
+      notification: n.c.accent,
+    },
+  }), [baseNavigationTheme, n]);
 
   return (
-    <PrefsProvider>
       <NavigationContainer theme={navTheme}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.primaryBright,
-          tabBarInactiveTintColor: colors.textMuted,
+          tabBarActiveTintColor: n.c.accentText,
+          tabBarInactiveTintColor: n.c.textMuted,
           tabBarStyle: {
             position: 'absolute',
             height: TAB_BAR_CONTENT_HEIGHT,
@@ -156,13 +165,12 @@ export default function RootNavigator() {
             shadowOffset: { width: 0, height: 0 },
             shadowRadius: 0,
           },
-          tabBarBackground: () => <GlassTabBarBackground />,
-          // Centres each icon/label pair in the bar. It must not carry a `color`: a colour set
-          // here is applied after the active and inactive tints, so it would pin every label to
-          // one shade and quietly disable both tints.
+          tabBarShowLabel: false,
+          tabBarBackground: () => <NeuTabBarBackground />,
+          // Icon-only navigation keeps the bottom dock quiet and leaves screen readers with
+          // the tab names supplied by the navigator.
           tabBarItemStyle: { justifyContent: 'center' },
-          tabBarLabelStyle: { fontSize: 12, fontWeight: '600' },
-          sceneStyle: { backgroundColor: colors.background },
+          sceneStyle: { backgroundColor: n.c.bg },
         }}
       >
         <Tab.Screen
@@ -200,22 +208,17 @@ export default function RootNavigator() {
         <Tab.Screen name="Account" component={AccountScreen} options={hiddenTabOptions} />
       </Tab.Navigator>
       </NavigationContainer>
-    </PrefsProvider>
   );
 }
 
 const s = StyleSheet.create({
   record: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  recordOn: { backgroundColor: colors.primary },
-  recordOff: {
-    backgroundColor: colors.primaryTint,
-    borderColor: colors.primary,
-    borderWidth: 1,
-  },
+  dish: { width: 40, height: 32, alignItems: 'center', justifyContent: 'center' },
+  activeDish: { borderRadius: 16 },
 });

@@ -1,5 +1,7 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { LayoutChangeEvent, StyleSheet } from 'react-native';
+import { View } from '../../ui/neu/NeuAuto';
+import { Text } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import Svg, { Circle, Path, Line, Text as SvgText } from 'react-native-svg';
@@ -285,7 +287,7 @@ function SpeedDial({
   return (
     <View style={s.dialWrap}>
       <Svg width={width} height={height}>
-        <Path d={arc(startDeg, endDeg)} stroke={colors.surfaceRaised} strokeWidth={12} fill="none" strokeLinecap="round" />
+        <Path d={arc(startDeg, endDeg)} stroke={colors.border} strokeWidth={12} fill="none" strokeLinecap="round" />
         {fraction > 0 && (
           <Path d={arc(startDeg, valueDeg)} stroke={colors.primary} strokeWidth={12} fill="none" strokeLinecap="round" />
         )}

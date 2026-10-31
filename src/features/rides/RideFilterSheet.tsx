@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Keyboard, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Keyboard, Modal, ScrollView, StyleSheet } from 'react-native';
+import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
+import { Text, TextInput } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../ui/theme';
+import { useNeu } from '../../ui/neu/useNeu';
 import {
   DEFAULT_RIDE_FILTERS,
   RIDE_SORT_LABELS,
@@ -43,6 +46,7 @@ function sameVehicle(a: VehicleSelection, b: VehicleSelection): boolean {
 // here writes to the database, so no ride can be modified from this screen.
 export default function RideFilterSheet({ visible, filters, vehicleOptions, onApply, onClose }: Props) {
   const insets = useSafeAreaInsets();
+  const n = useNeu();
 
   const [statuses, setStatuses] = useState<RideStatusValue[]>(filters.statuses);
   const [vehicle, setVehicle] = useState<VehicleSelection>(filters.vehicle);
@@ -120,7 +124,7 @@ export default function RideFilterSheet({ visible, filters, vehicleOptions, onAp
           accessibilityRole="button"
           accessibilityLabel="Close filters"
         />
-        <View style={[s.sheet, { paddingBottom: spacing.lg + Math.min(insets.bottom, 24) }]}>
+        <View style={[s.sheet, { backgroundColor: n.c.surface, borderTopColor: n.c.shadowDark, paddingBottom: spacing.lg + Math.min(insets.bottom, 24) }]}>
           <View style={s.grabber} pointerEvents="none" />
           <View style={s.head}>
             <Text style={typography.heading} accessibilityRole="header">
@@ -145,7 +149,7 @@ export default function RideFilterSheet({ visible, filters, vehicleOptions, onAp
             showsVerticalScrollIndicator={false}
           >
             <Text style={s.fieldLabel}>Status</Text>
-            <View style={s.chips}>
+            <View style={[s.chips, { backgroundColor: n.c.surface }]}>
               <Chip
                 label="Any"
                 selected={statuses.length === 0}
@@ -191,7 +195,7 @@ export default function RideFilterSheet({ visible, filters, vehicleOptions, onAp
             {showVehicles && (
               <>
                 <Text style={s.fieldLabel}>Vehicle</Text>
-                <View style={s.chips}>
+                <View style={[s.chips, { backgroundColor: n.c.surface }]}>
                   <Chip
                     label="Any vehicle"
                     selected={vehicle.kind === 'any'}
@@ -239,7 +243,7 @@ export default function RideFilterSheet({ visible, filters, vehicleOptions, onAp
             {!!distanceError && <Text style={s.error}>{distanceError}</Text>}
 
             <Text style={s.fieldLabel}>Sort by</Text>
-            <View style={s.chips}>
+            <View style={[s.chips, { backgroundColor: n.c.surface }]}>
               {SORT_ORDER.map((value) => (
                 <Chip
                   key={value}
@@ -308,11 +312,6 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     maxHeight: '88%',
-    elevation: 16,
-    shadowColor: '#000000',
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: -6 },
   },
   grabber: {
     alignSelf: 'center',
@@ -338,7 +337,8 @@ const s = StyleSheet.create({
   scroll: { flexGrow: 0 },
   scrollContent: { paddingBottom: spacing.md },
   fieldLabel: { ...typography.label, marginTop: spacing.md, marginBottom: spacing.xs },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  chips: {
+    backgroundColor: colors.surface, flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   chip: {
     minHeight: 44,
     justifyContent: 'center',
@@ -350,7 +350,7 @@ const s = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipTxt: { ...typography.caption, color: colors.textMuted },
-  chipTxtSelected: { color: colors.primaryInk, fontWeight: '700' },
+  chipTxtSelected: { color: colors.onPrimary, fontWeight: '700' },
   inputRow: { flexDirection: 'row', gap: spacing.sm },
   input: {
     backgroundColor: colors.surfaceRaised,
@@ -391,5 +391,5 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   applyDisabled: { opacity: 0.45 },
-  applyTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
+  applyTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
 });
