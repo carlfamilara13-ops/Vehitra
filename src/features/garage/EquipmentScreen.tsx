@@ -1,7 +1,20 @@
 import React, { useCallback, useMemo, useState } from 'react';
+<<<<<<< HEAD
 import { ActivityIndicator, type ColorValue, Alert, StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text, TextInput } from '../../ui/neu/NeuText';
+=======
+import {
+  ActivityIndicator,
+  type ColorValue,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import * as Crypto from 'expo-crypto';

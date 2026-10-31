@@ -1,5 +1,9 @@
 import React, { useMemo } from 'react';
+<<<<<<< HEAD
 import { StyleSheet, View } from 'react-native';
+=======
+import { StyleSheet, View, useColorScheme } from 'react-native';
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 import { DarkTheme, DefaultTheme, NavigationContainer, type Theme } from '@react-navigation/native';
 import { createBottomTabNavigator, type BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -127,13 +131,19 @@ const tabBarIcon =
 
 export default function RootNavigator() {
   const insets = useSafeAreaInsets();
+<<<<<<< HEAD
   const { appearance } = usePrefs();
   const n = useNeu();
   const baseNavigationTheme = appearance === 'light' ? DefaultTheme : DarkTheme;
+=======
+  const colorScheme = useColorScheme();
+  const baseNavigationTheme = colorScheme === 'light' ? DefaultTheme : DarkTheme;
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
   const navTheme = useMemo<Theme>(() => ({
     ...baseNavigationTheme,
     colors: {
       ...baseNavigationTheme.colors,
+<<<<<<< HEAD
       primary: n.c.accent,
       background: n.c.bg,
       card: n.c.surface,
@@ -142,14 +152,29 @@ export default function RootNavigator() {
       notification: n.c.accent,
     },
   }), [baseNavigationTheme, n]);
+=======
+      primary: colorScheme === 'light' ? '#1E6BFF' : '#1E6BFF',
+      background: colorScheme === 'light' ? '#F3F6FC' : '#0A0A1A',
+      card: colorScheme === 'light' ? '#FFFFFF' : '#11152A',
+      text: colorScheme === 'light' ? '#18233D' : '#E9F1FF',
+      border: colorScheme === 'light' ? '#D7DFEE' : '#252C4A',
+      notification: colorScheme === 'light' ? '#1E6BFF' : '#1E6BFF',
+    },
+  }), [baseNavigationTheme, colorScheme]);
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 
   return (
       <NavigationContainer theme={navTheme}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
+<<<<<<< HEAD
           tabBarActiveTintColor: n.c.accentText,
           tabBarInactiveTintColor: n.c.textMuted,
+=======
+          tabBarActiveTintColor: colorScheme === 'light' ? '#1459DB' : '#60EFFF',
+          tabBarInactiveTintColor: colorScheme === 'light' ? '#596983' : '#93A0BF',
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
           tabBarStyle: {
             position: 'absolute',
             height: TAB_BAR_CONTENT_HEIGHT,

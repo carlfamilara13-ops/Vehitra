@@ -10,6 +10,7 @@ function themedColor(token: string, light: string, dark: string): ColorValue {
 }
 
 export const colors = {
+<<<<<<< HEAD
   background: themedColor('Background', '#E8EDF4', '#202228'),
   surface: themedColor('Surface', '#E8EDF4', '#202228'),
   surfaceRaised: themedColor('SurfaceRaised', '#E8EDF4', '#202228'),
@@ -28,6 +29,26 @@ export const colors = {
   successText: themedColor('SuccessText', '#008A5B', '#48E39A'),
   dangerText: themedColor('DangerText', '#C51F43', '#FF5C7A'),
   primaryTint: themedColor('PrimaryTint', '#D8E7FF', '#252E43'),
+=======
+  background: themedColor('Background', '#F3F6FC', '#0A0A1A'),
+  surface: themedColor('Surface', '#FFFFFF', '#11152A'),
+  surfaceRaised: themedColor('SurfaceRaised', '#EEF2FA', '#171C35'),
+  border: themedColor('Border', '#D7DFEE', '#252C4A'),
+  primary: themedColor('Primary', '#1E6BFF', '#1E6BFF'),
+  primaryPressed: themedColor('PrimaryPressed', '#1556D6', '#1653CC'),
+  primaryInk: themedColor('PrimaryInk', '#FFFFFF', '#FFFFFF'),
+  primaryBright: themedColor('PrimaryBright', '#1459DB', '#60EFFF'),
+  text: themedColor('Text', '#18233D', '#E9F1FF'),
+  textMuted: themedColor('TextMuted', '#596983', '#93A0BF'),
+  danger: themedColor('Danger', '#C5284A', '#FF7F98'),
+  dangerSolid: themedColor('DangerSolid', '#A50F31', '#A50F31'),
+  warningSurface: themedColor('WarningSurface', '#FFF3D8', '#2B210D'),
+  warningText: themedColor('WarningText', '#8B5200', '#FFC46B'),
+  success: themedColor('Success', '#087D59', '#4DFFC4'),
+  successText: themedColor('SuccessText', '#087D59', '#7BFFD8'),
+  dangerText: themedColor('DangerText', '#B51F3E', '#FF7F98'),
+  primaryTint: themedColor('PrimaryTint', '#E5EEFF', '#16264A'),
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
   // Transparent panels stay transparent in both schemes; their outline and sheen adapt.
   glassFill: 'transparent',
   glassPanel: 'transparent',
@@ -77,11 +98,19 @@ export const typography: Record<
   'title' | 'heading' | 'metric' | 'wordmark' | 'kicker' | 'body' | 'label' | 'caption',
   import('react-native').TextStyle
 > = {
+<<<<<<< HEAD
   title: { fontFamily: fonts.bold, fontSize: 24, color: colors.text },
   heading: { fontFamily: fonts.semibold, fontSize: 18, color: colors.text },
   metric: { fontFamily: fonts.bold, fontSize: 26, color: colors.text, fontVariant: ['tabular-nums'] },
   wordmark: { fontFamily: fonts.display, fontSize: 26, letterSpacing: 2, color: colors.text },
   kicker: { fontFamily: fonts.semibold, fontSize: 13, color: colors.textMuted },
+=======
+  title: { fontFamily: fonts.display, fontSize: 24, color: colors.text },
+  heading: { fontFamily: fonts.display, fontSize: 18, color: colors.text },
+  metric: { fontFamily: fonts.display, fontSize: 26, color: colors.text },
+  wordmark: { fontFamily: fonts.display, fontSize: 26, letterSpacing: 2, color: colors.text },
+  kicker: { fontFamily: fonts.display, fontSize: 13, letterSpacing: 1.8, textTransform: 'uppercase', color: colors.textMuted },
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
   body: { fontSize: 15, fontWeight: '400', color: colors.text },
   label: { fontSize: 13, fontWeight: '600', color: colors.text },
   caption: { fontSize: 12, fontWeight: '400', color: colors.textMuted },

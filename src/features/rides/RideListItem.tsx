@@ -1,7 +1,11 @@
 import React, { memo, useCallback } from 'react';
+<<<<<<< HEAD
 import { StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text } from '../../ui/neu/NeuText';
+=======
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 import { Ionicons } from '@expo/vector-icons';
 import type { RideRow } from '../../data/local/ridesStore';
 import { formatDistanceM, formatSpeedMs, type Units } from '../../domain/units';

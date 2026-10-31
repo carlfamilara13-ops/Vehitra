@@ -115,6 +115,14 @@ const s = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.lg,
     marginBottom: spacing.lg,
+<<<<<<< HEAD
+=======
+    shadowColor: '#000000',
+    shadowOpacity: 0.1,
+    shadowRadius: 32,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
   },
   headRow: {
     flexDirection: 'row',

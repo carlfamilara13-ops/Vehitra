@@ -1,8 +1,21 @@
 import React, { useCallback, useState } from 'react';
+<<<<<<< HEAD
 import { Alert, Image, StyleSheet } from 'react-native';
 import { NeuToggle, NeuSegmented } from '../../ui/neu/NeuControls';
 import { Pressable, TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text } from '../../ui/neu/NeuText';
+=======
+import {
+  Alert,
+  Image,
+  Pressable,
+  StyleSheet,
+  Switch,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 import { useFocusEffect } from '@react-navigation/native';
 import Constants from 'expo-constants';
 import { Ionicons } from '@expo/vector-icons';
@@ -104,6 +117,7 @@ export default function SettingsScreen({ navigation }: Props) {
       </View>
 
       <Section title="Appearance" description="Choose a theme for every Vehitra screen.">
+<<<<<<< HEAD
         <NeuSegmented
           value={prefs.appearance}
           onChange={(v) => { if (!saving) void save({ appearance: v }); }}
@@ -112,6 +126,12 @@ export default function SettingsScreen({ navigation }: Props) {
             { value: 'light', label: 'Light', icon: 'sunny-outline' },
           ]}
         />
+=======
+        <View style={s.appearanceChoices} accessibilityRole="radiogroup" accessibilityLabel="Appearance">
+          <AppearanceOption label="Dark" selected={prefs.appearance === 'dark'} onPress={() => void save({ appearance: 'dark' })} disabled={saving} />
+          <AppearanceOption label="Light" selected={prefs.appearance === 'light'} onPress={() => void save({ appearance: 'light' })} disabled={saving} />
+        </View>
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
       </Section>
 
       <Section title="Your Vehitra">
@@ -168,6 +188,7 @@ export default function SettingsScreen({ navigation }: Props) {
       </Section>
 
       <Section title="Preferences">
+<<<<<<< HEAD
         <SegRow
           label="Units"
           hint="Display preference only; stored distances remain unchanged"
@@ -187,6 +208,19 @@ export default function SettingsScreen({ navigation }: Props) {
             { value: 'standard', label: MODE_LABEL.standard },
             { value: 'easy', label: MODE_LABEL.easy },
           ]}
+=======
+        <LinkRow
+          label="Units"
+          hint="Display preference only; stored distances remain unchanged"
+          value={UNITS_LABEL[prefs.units]}
+          onPress={() => void save({ units: prefs.units === 'metric' ? 'imperial' : 'metric' })}
+        />
+        <LinkRow
+          label="Interface mode"
+          hint="Larger text and controls on every screen"
+          value={MODE_LABEL[prefs.uiMode]}
+          onPress={() => void save({ ui_mode: prefs.uiMode === 'standard' ? 'easy' : 'standard' })}
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
         />
         <LinkRow
           label="Account & sync"
@@ -214,6 +248,7 @@ export default function SettingsScreen({ navigation }: Props) {
   );
 }
 
+<<<<<<< HEAD
 function SegRow<T extends string>({ label, hint, value, onChange, options }: { label: string; hint?: string; value: T; onChange: (v: T) => void; options: { value: T; label: string }[] }) {
   return (
     <View style={[s.row, s.rowDivider, s.segRow]}>
@@ -222,10 +257,34 @@ function SegRow<T extends string>({ label, hint, value, onChange, options }: { l
         {!!hint && <Text style={s.rowHint}>{hint}</Text>}
       </View>
       <NeuSegmented value={value} onChange={onChange} options={options} />
+=======
+function AppearanceOption({ label, selected, disabled, onPress }: { label: string; selected: boolean; disabled: boolean; onPress: () => void }) {
+  return (
+    <Pressable
+      style={[s.appearanceOption, selected && s.appearanceSelected, disabled && s.disabledRow]}
+      onPress={onPress}
+      disabled={disabled}
+      accessibilityRole="radio"
+      accessibilityState={{ checked: selected, disabled }}
+    >
+      <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={19} color={selected ? colors.primary : colors.textMuted} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" />
+      <Text style={[s.appearanceLabel, selected && s.appearanceLabelSelected]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+function Section({ title, description, children, grouped = false }: { title: string; description?: string; children: React.ReactNode; grouped?: boolean }) {
+  return (
+    <View style={s.section}>
+      <Text style={s.sectionTitle}>{title}</Text>
+      {description ? <Text style={s.sectionDescription}>{description}</Text> : null}
+      {grouped ? children : <View style={s.group}>{children}</View>}
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
     </View>
   );
 }
 
+<<<<<<< HEAD
 function Section({ title, description, children, grouped = false }: { title: string; description?: string; children: React.ReactNode; grouped?: boolean }) {
   return (
     <View style={s.section}>
@@ -236,6 +295,8 @@ function Section({ title, description, children, grouped = false }: { title: str
   );
 }
 
+=======
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 function LinkRow({ label, hint, value, onPress, last = false }: { label: string; hint?: string; value?: string; onPress: () => void; last?: boolean }) {
   return (
     <TouchableOpacity style={[s.row, !last && s.rowDivider]} onPress={onPress} accessibilityRole="button">
@@ -256,7 +317,18 @@ function ToggleRow({ label, hint, value, disabled, onValueChange, last = false }
         <Text style={s.rowLabel}>{label}</Text>
         {!!hint && <Text style={s.rowHint}>{hint}</Text>}
       </View>
+<<<<<<< HEAD
       <NeuToggle value={value} onChange={onValueChange} label={label} disabled={disabled} />
+=======
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        disabled={disabled}
+        trackColor={{ false: colors.border, true: colors.primary }}
+        thumbColor={value ? colors.primaryInk : colors.textMuted}
+        accessibilityLabel={label}
+      />
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
     </View>
   );
 }
@@ -281,7 +353,10 @@ const s = StyleSheet.create({
   groupLabel: { ...typography.caption, color: colors.textMuted, fontWeight: '700', letterSpacing: 0.8, marginLeft: spacing.xs, marginTop: spacing.sm, marginBottom: spacing.xs },
   group: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.md, overflow: 'hidden' },
   row: { minHeight: 64, flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+<<<<<<< HEAD
   segRow: { flexDirection: 'column', alignItems: 'stretch', gap: spacing.sm },
+=======
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
   rowDivider: { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth },
   rowText: { flex: 1, minWidth: 0 },
   rowLabel: { ...typography.body, fontWeight: '600' },

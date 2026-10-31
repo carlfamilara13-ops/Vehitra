@@ -1,6 +1,18 @@
 import React, { useMemo, useState } from 'react';
+<<<<<<< HEAD
 import { StyleSheet, View, useColorScheme, type LayoutChangeEvent, type StyleProp, type ViewStyle } from 'react-native';
 import { Text } from '../../ui/neu/NeuText';
+=======
+import {
+  StyleSheet,
+  Text,
+  View,
+  useColorScheme,
+  type LayoutChangeEvent,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
+>>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 import { Camera, GeoJSONSource, Layer, Map } from '@maplibre/maplibre-react-native';
 import type { Feature, FeatureCollection, LineString, Point, Position } from 'geojson';
 import { Ionicons } from '@expo/vector-icons';
