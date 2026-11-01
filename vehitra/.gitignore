@@ -1,0 +1,17 @@
+node_modules/
+.expo/
+dist/
+android/
+ios/
+*.apk
+*.aab
+.env
+.env.*
+!.env.example
+!.env.test.example
+*.log
+.DS_Store
+docs/
+.env.test.example
+.env.example
+scripts/

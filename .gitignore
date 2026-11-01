@@ -1,17 +1,31 @@
-node_modules/
-.expo/
-dist/
-android/
-ios/
-*.apk
-*.aab
-.env
-.env.*
-!.env.example
-!.env.test.example
-*.log
+# Dependencies
+**/node_modules/
+
+# Build outputs and generated files
+**/dist/
+**/build/
+**/.expo/
+
+# Environment variables and secrets
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.test.example
+
+# Local project tools and generated data
+/Claude-Neumorphic/
+/graphify-out/
+
+# Local project documentation
+/Vehitra_Master_Project_Context.md
+
+# Local patches and generated Android color backups
+/vehitra-neumorphic.patch
+/colors-before-neumorphic-dark.xml
+/colors-before-neumorphic-light.xml
+/colors.xml.values
+/colors.xml.values-night
+
+# OS files
 .DS_Store
-docs/
-.env.test.example
-.env.example
-scripts/
+Thumbs.db

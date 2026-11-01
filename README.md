@@ -1,18 +1,40 @@
-# Vehitra
+﻿# Vehitra
 
-Vehicle companion app: garage, ride tracking (works offline), parts and maintenance, deadlines.
-Android first (Expo / React Native). Product rules live in the project context; engineering docs live in `docs/`.
+Vehitra is a vehicle companion platform consisting of a mobile application
+and a web-based administration console.
 
-**Status:** Phase 1 — foundation. Phase 0 (GPS proof-of-concept) passed; see `docs/decisions/0001-gps-architecture.md`.
+## Repository Structure
 
-## Docs
-- `docs/REPOSITORY_STRUCTURE.md` — folders, boundaries, conventions
-- `docs/ARCHITECTURE_NOTES.md` — data model, mileage ledger, maintenance, sync, retention
-- `docs/SECURITY.md` — Row Level Security rules and checklist
-- `docs/PHASE1_PLAN.md` — build order and exit criteria
-- `docs/decisions/` — architecture decision records
+| Folder | Description | Technology |
+|---|---|---|
+| `vehitra/` | Mobile application | Expo, React Native, TypeScript |
+| `vehitra-web/` | Admin web console | React, Vite, TypeScript |
 
-## Ground rules
-- Incremental changes only; inspect before changing; no invented files or APIs.
-- Pure business rules live in `src/domain` (no React/Expo imports) so they can be unit-tested.
-- No secrets in the app or the repo. Row Level Security before any real user data.
+## Projects
+
+### Vehitra Mobile App
+Vehicle management, GPS ride tracking, maintenance monitoring,
+parts management, and document tracking.
+
+See [`vehitra/README.md`](vehitra/README.md) for setup and documentation.
+
+### Vehitra Admin Web
+Web-based administration for vehicle catalogs, maintenance rules,
+catalog releases, model requests, administrator accounts, and audit logs.
+
+See [`vehitra-web/README.md`](vehitra-web/README.md) for setup instructions.
+
+## Shared Backend
+
+Both projects use the same Supabase project.
+
+Database migrations are maintained in:
+
+`vehitra/supabase/migrations/`
+
+See the individual project READMEs for configuration and setup.
+
+## Development
+
+Each project has its own dependencies and development commands.
+Run commands from the corresponding project directory.

@@ -1,0 +1,11 @@
+﻿**/node_modules/
+**/.expo/
+**/dist/
+**/.git/
+**/android/
+**/ios/
+**/.env*
+**/*.apk
+**/*.aab
+**/*.log
+graphify-out/
