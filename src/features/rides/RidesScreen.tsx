@@ -168,7 +168,7 @@ export default function RidesScreen({ navigation }: Props) {
         </TouchableOpacity>
       </View>
 
-      <View style={s.chips}>
+      <View style={[s.chips, { backgroundColor: 'transparent' }]}>
         {QUICK_STATUSES.map((value) => {
           const selected = activeQuick === value;
           return (

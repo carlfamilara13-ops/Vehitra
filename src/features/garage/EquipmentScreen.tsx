@@ -1,20 +1,8 @@
+
 import React, { useCallback, useMemo, useState } from 'react';
-<<<<<<< HEAD
 import { ActivityIndicator, type ColorValue, Alert, StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text, TextInput } from '../../ui/neu/NeuText';
-=======
-import {
-  ActivityIndicator,
-  type ColorValue,
-  Alert,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
->>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import * as Crypto from 'expo-crypto';
@@ -50,15 +38,29 @@ type Props = BottomTabScreenProps<RootTabParamList, 'Equipment'>;
 
 const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
 
-// Text input -> epoch ms. Empty means "no date"; anything not YYYY-MM-DD is invalid so a typo
-// never silently drops the date (the store rejects future dates itself).
+// Text input -> epoch ms. Empty means "no date"; anything not YYYY-MM-DD is invalid.
 function parseYmd(text: string): number | 'invalid' | null {
   const trimmed = text.trim();
   if (trimmed === '') return null;
+
   const m = DATE_RE.exec(trimmed);
   if (!m) return 'invalid';
-  const ms = Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  if (!Number.isFinite(ms)) return 'invalid';
+
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+
+  const ms = Date.UTC(year, month - 1, day);
+  const date = new Date(ms);
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return 'invalid';
+  }
+
   return ms;
 }
 
@@ -77,11 +79,16 @@ type FormState = {
   notes: string;
 };
 
-const emptyForm: FormState = { id: null, name: '', brand: '', model: '', installedAt: '', notes: '' };
+const emptyForm: FormState = {
+  id: null,
+  name: '',
+  brand: '',
+  model: '',
+  installedAt: '',
+  notes: '',
+};
 
-// Per-vehicle equipment: descriptive accessories plus a manual battery check-in. Accessories
-// deliberately carry no intervals or status (the data layer forbids it) — this screen is a list,
-// not a scheduler. Battery idle is computed from the single "last in use" timestamp.
+// Per-vehicle equipment: descriptive accessories plus a manual battery check-in.
 export default function EquipmentScreen({ navigation, route }: Props) {
   const vehicleId = route.params?.vehicleId ?? null;
 
@@ -96,21 +103,31 @@ export default function EquipmentScreen({ navigation, route }: Props) {
 
   const refresh = useCallback(async () => {
     setLoading(true);
+
     try {
       const db = await getDb();
-      const vehicle = vehicleId ? await getVehicle(db, vehicleId) : await getActiveVehicle(db);
+      const vehicle = vehicleId
+        ? await getVehicle(db, vehicleId)
+        : await getActiveVehicle(db);
+
       if (!vehicle) {
         setResolvedVehicleId(null);
         setVehicleName('');
         setAccessories([]);
         setBattery(null);
-        setError(vehicleId ? 'Vehicle not found.' : 'No active vehicle. Pick one in the Garage first.');
+        setError(
+          vehicleId
+            ? 'Vehicle not found.'
+            : 'No active vehicle. Pick one in the Garage first.',
+        );
         return;
       }
+
       const [list, batt] = await Promise.all([
         listAccessories(db, vehicle.id),
         getBatteryState(db, vehicle.id),
       ]);
+
       setResolvedVehicleId(vehicle.id);
       setVehicleName(vehicleDisplayName(vehicle));
       setAccessories(list);
@@ -131,16 +148,30 @@ export default function EquipmentScreen({ navigation, route }: Props) {
 
   const batteryView = useMemo(() => {
     if (!battery) return null;
+
     const days = batteryIdleDays(battery.last_active_at, Date.now());
     const level = batteryIdleLevel(days);
-    return { days, level, label: BATTERY_IDLE_LEVEL_LABELS[level] };
+
+    return {
+      days,
+      level,
+      label: BATTERY_IDLE_LEVEL_LABELS[level],
+    };
   }, [battery]);
 
   const markBatteryUse = useCallback(async () => {
     if (!resolvedVehicleId) return;
+
     try {
       const db = await getDb();
-      await recordBatteryUse(db, resolvedVehicleId, Date.now(), battery?.note ?? null);
+
+      await recordBatteryUse(
+        db,
+        resolvedVehicleId,
+        Date.now(),
+        battery?.note ?? null,
+      );
+
       await refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -149,27 +180,45 @@ export default function EquipmentScreen({ navigation, route }: Props) {
 
   const saveAccessory = useCallback(async () => {
     if (!form || !resolvedVehicleId) return;
+
+    if (!form.name.trim()) {
+      setError('Please enter an accessory name.');
+      return;
+    }
+
     const installed = parseYmd(form.installedAt);
+
     if (installed === 'invalid') {
       setError('Installation date must be YYYY-MM-DD (e.g. 2026-03-12).');
       return;
     }
+
     setSaving(true);
+
     try {
       const db = await getDb();
+
       const input = {
         user_vehicle_id: resolvedVehicleId,
-        name: form.name,
+        name: form.name.trim(),
         brand: form.brand.trim() || null,
         model: form.model.trim() || null,
         installed_at: installed,
         notes: form.notes.trim() || null,
       };
+
       if (form.id) {
-        await updateAccessory(db, form.id, { ...input, id: form.id });
+        await updateAccessory(db, form.id, {
+          ...input,
+          id: form.id,
+        });
       } else {
-        await createAccessory(db, { ...input, id: Crypto.randomUUID() });
+        await createAccessory(db, {
+          ...input,
+          id: Crypto.randomUUID(),
+        });
       }
+
       setForm(null);
       setError(null);
       await refresh();
@@ -182,24 +231,28 @@ export default function EquipmentScreen({ navigation, route }: Props) {
 
   const removeAccessory = useCallback(
     (row: AccessoryRow) => {
-      Alert.alert('Remove accessory', `Remove "${row.name}" from this vehicle?`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            void (async () => {
-              try {
-                const db = await getDb();
-                await softDeleteAccessory(db, row.id);
-                await refresh();
-              } catch (e) {
-                setError(e instanceof Error ? e.message : String(e));
-              }
-            })();
+      Alert.alert(
+        'Remove accessory',
+        `Remove "${row.name}" from this vehicle?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Remove',
+            style: 'destructive',
+            onPress: () => {
+              void (async () => {
+                try {
+                  const db = await getDb();
+                  await softDeleteAccessory(db, row.id);
+                  await refresh();
+                } catch (e) {
+                  setError(e instanceof Error ? e.message : String(e));
+                }
+              })();
+            },
           },
-        },
-      ]);
+        ],
+      );
     },
     [refresh],
   );
@@ -210,7 +263,8 @@ export default function EquipmentScreen({ navigation, route }: Props) {
       name: row.name,
       brand: row.brand ?? '',
       model: row.model ?? '',
-      installedAt: row.installed_at != null ? ymd(row.installed_at) : '',
+      installedAt:
+        row.installed_at != null ? ymd(row.installed_at) : '',
       notes: row.notes ?? '',
     });
   }, []);
@@ -228,23 +282,47 @@ export default function EquipmentScreen({ navigation, route }: Props) {
       <Screen title="Equipment">
         <Placeholder
           title="No vehicle selected"
-          message={error ?? 'Pick a vehicle in the Garage, then open its equipment from the vehicle card.'}
+          message={
+            error ??
+            'Pick a vehicle in the Garage, then open its equipment from the vehicle card.'
+          }
         />
-        <TouchableOpacity style={s.btnGhost} onPress={() => navigation.navigate('Garage')} accessibilityRole="button">
+
+        <TouchableOpacity
+          style={s.btnGhost}
+          onPress={() => navigation.navigate('Garage')}
+          accessibilityRole="button"
+        >
           <Text style={s.btnGhostTxt}>Go to Garage</Text>
         </TouchableOpacity>
       </Screen>
     );
   }
 
-  const levelColors: Record<string, { bg: ColorValue; fg: ColorValue }> = {
-    ok: { bg: colors.surfaceRaised, fg: colors.textMuted },
-    watch: { bg: colors.warningSurface, fg: colors.warningText },
-    warn: { bg: 'rgba(255, 127, 152, 0.14)', fg: colors.danger },
+  const levelColors: Record<
+    string,
+    { bg: ColorValue; fg: ColorValue }
+  > = {
+    ok: {
+      bg: colors.surfaceRaised,
+      fg: colors.textMuted,
+    },
+    watch: {
+      bg: colors.warningSurface,
+      fg: colors.warningText,
+    },
+    warn: {
+      bg: 'rgba(255, 127, 152, 0.14)',
+      fg: colors.danger,
+    },
   };
 
   return (
-    <Screen title="Equipment" subtitle={vehicleName} keyboardShouldPersistTaps="handled">
+    <Screen
+      title="Equipment"
+      subtitle={vehicleName}
+      keyboardShouldPersistTaps="handled"
+    >
       {!!error && (
         <View style={s.errorCard}>
           <Text style={s.errorTxt}>{error}</Text>
@@ -254,28 +332,56 @@ export default function EquipmentScreen({ navigation, route }: Props) {
       <View style={s.card}>
         <View style={s.cardHead}>
           <Text style={s.cardTitle}>Battery</Text>
+
           {batteryView && (
-            <View style={[s.badge, { backgroundColor: levelColors[batteryView.level].bg }]}>
-              <Text style={[s.badgeTxt, { color: levelColors[batteryView.level].fg }]}>
+            <View
+              style={[
+                s.badge,
+                {
+                  backgroundColor:
+                    levelColors[batteryView.level]?.bg ??
+                    colors.surfaceRaised,
+                },
+              ]}
+            >
+              <Text
+                style={[
+                  s.badgeTxt,
+                  {
+                    color:
+                      levelColors[batteryView.level]?.fg ??
+                      colors.textMuted,
+                  },
+                ]}
+              >
                 {batteryView.label}
               </Text>
             </View>
           )}
         </View>
+
         {!battery ? (
           <Text style={s.muted}>
-            Not tracked yet. Tap when the battery is in use so idle days can be counted.
+            Not tracked yet. Tap when the battery is in use so idle days can
+            be counted.
           </Text>
         ) : (
           <>
             <Text style={s.muted}>
-              Last in use {new Date(battery.last_active_at).toLocaleDateString()}
-              {batteryView?.days != null ? ` · ${batteryView.days} day${batteryView.days === 1 ? '' : 's'} idle` : ''}
+              Last in use{' '}
+              {new Date(battery.last_active_at).toLocaleDateString()}
+              {batteryView?.days != null
+                ? ` · ${batteryView.days} day${batteryView.days === 1 ? '' : 's'} idle`
+                : ''}
               .
             </Text>
-            {!!battery.note && <Text style={s.note}>Note: {battery.note}</Text>}
+
+            {!!battery.note && (
+              <Text style={s.note}>Note: {battery.note}</Text>
+            )}
           </>
         )}
+
         <TouchableOpacity
           style={s.btnPrimary}
           onPress={() => void markBatteryUse()}
@@ -284,14 +390,17 @@ export default function EquipmentScreen({ navigation, route }: Props) {
         >
           <Text style={s.btnPrimaryTxt}>Battery in use today</Text>
         </TouchableOpacity>
+
         <Text style={s.fineprint}>
-          Manual check-in only — Vehitra cannot read your battery. Idle days count from this tap.
+          Manual check-in only — Vehitra cannot read your battery. Idle days
+          count from this tap.
         </Text>
       </View>
 
       <View style={s.card}>
         <View style={s.cardHead}>
           <Text style={s.cardTitle}>Accessories</Text>
+
           {!form && (
             <TouchableOpacity
               style={s.btnGhostSm}
@@ -306,7 +415,8 @@ export default function EquipmentScreen({ navigation, route }: Props) {
 
         {accessories.length === 0 && !form && (
           <Text style={s.muted}>
-            No accessories yet — things like mounts, chargers or helmets you want to keep track of.
+            No accessories yet — things like mounts, chargers or helmets you
+            want to keep track of.
           </Text>
         )}
 
@@ -314,25 +424,47 @@ export default function EquipmentScreen({ navigation, route }: Props) {
           <View key={row.id} style={s.row}>
             <View style={s.rowText}>
               <Text style={s.rowTitle}>{row.name}</Text>
+
               {[row.brand, row.model].filter(Boolean).join(' · ') && (
-                <Text style={s.muted}>{[row.brand, row.model].filter(Boolean).join(' · ')}</Text>
+                <Text style={s.muted}>
+                  {[row.brand, row.model].filter(Boolean).join(' · ')}
+                </Text>
               )}
+
               {row.installed_at != null && (
-                <Text style={s.muted}>Installed {ymd(row.installed_at)}</Text>
+                <Text style={s.muted}>
+                  Installed {ymd(row.installed_at)}
+                </Text>
               )}
-              {!!row.notes && <Text style={s.note}>{row.notes}</Text>}
+
+              {!!row.notes && (
+                <Text style={s.note}>{row.notes}</Text>
+              )}
             </View>
+
             <View style={s.rowActions}>
-              <TouchableOpacity style={s.btnGhostSm} onPress={() => startEdit(row)} accessibilityRole="button">
+              <TouchableOpacity
+                style={s.btnGhostSm}
+                onPress={() => startEdit(row)}
+                accessibilityRole="button"
+              >
                 <Text style={s.btnGhostSmTxt}>Edit</Text>
               </TouchableOpacity>
+
               <TouchableOpacity
                 style={s.btnGhostSm}
                 onPress={() => removeAccessory(row)}
                 accessibilityRole="button"
                 accessibilityLabel={`Remove ${row.name}`}
               >
-                <Text style={[s.btnGhostSmTxt, { color: colors.danger }]}>Remove</Text>
+                <Text
+                  style={[
+                    s.btnGhostSmTxt,
+                    { color: colors.danger },
+                  ]}
+                >
+                  Remove
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -346,30 +478,35 @@ export default function EquipmentScreen({ navigation, route }: Props) {
               onChangeText={(t) => setForm({ ...form, name: t })}
               placeholder="e.g. Phone mount"
             />
+
             <Field
               label="Brand"
               value={form.brand}
               onChangeText={(t) => setForm({ ...form, brand: t })}
               placeholder="Optional"
             />
+
             <Field
               label="Model"
               value={form.model}
               onChangeText={(t) => setForm({ ...form, model: t })}
               placeholder="Optional"
             />
+
             <Field
               label="Installed (YYYY-MM-DD)"
               value={form.installedAt}
               onChangeText={(t) => setForm({ ...form, installedAt: t })}
               placeholder="Optional"
             />
+
             <Field
               label="Notes"
               value={form.notes}
               onChangeText={(t) => setForm({ ...form, notes: t })}
               placeholder="Optional"
             />
+
             <View style={s.formActions}>
               <TouchableOpacity
                 style={s.btnPrimary}
@@ -377,9 +514,20 @@ export default function EquipmentScreen({ navigation, route }: Props) {
                 disabled={saving}
                 accessibilityRole="button"
               >
-                <Text style={s.btnPrimaryTxt}>{saving ? 'Saving…' : form.id ? 'Save changes' : 'Add accessory'}</Text>
+                <Text style={s.btnPrimaryTxt}>
+                  {saving
+                    ? 'Saving…'
+                    : form.id
+                      ? 'Save changes'
+                      : 'Add accessory'}
+                </Text>
               </TouchableOpacity>
-              <TouchableOpacity style={s.btnGhost} onPress={() => setForm(null)} accessibilityRole="button">
+
+              <TouchableOpacity
+                style={s.btnGhost}
+                onPress={() => setForm(null)}
+                accessibilityRole="button"
+              >
                 <Text style={s.btnGhostTxt}>Cancel</Text>
               </TouchableOpacity>
             </View>
@@ -397,6 +545,7 @@ function Field({
   return (
     <View style={s.field}>
       <Text style={s.fieldLabel}>{label}</Text>
+
       <TextInput
         {...input}
         style={s.input}
@@ -408,7 +557,9 @@ function Field({
 }
 
 const s = StyleSheet.create({
-  loading: { marginTop: spacing.xl },
+  loading: {
+    marginTop: spacing.xl,
+  },
   errorCard: {
     backgroundColor: colors.surface,
     borderColor: colors.danger,
@@ -417,7 +568,10 @@ const s = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
-  errorTxt: { ...typography.body, color: colors.danger },
+  errorTxt: {
+    ...typography.body,
+    color: colors.danger,
+  },
   card: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
@@ -426,13 +580,41 @@ const s = StyleSheet.create({
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
-  cardHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  cardTitle: { ...typography.heading, fontSize: 16 },
-  badge: { borderRadius: radii.pill, paddingHorizontal: spacing.md, paddingVertical: spacing.xs, marginLeft: spacing.sm },
-  badgeTxt: { ...typography.caption, fontWeight: '700' },
-  muted: { ...typography.body, color: colors.textMuted, marginTop: spacing.sm, lineHeight: 20 },
-  note: { ...typography.caption, marginTop: spacing.xs, lineHeight: 18 },
-  fineprint: { ...typography.caption, marginTop: spacing.sm, lineHeight: 16 },
+  cardHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  cardTitle: {
+    ...typography.heading,
+    fontSize: 16,
+  },
+  badge: {
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+    marginLeft: spacing.sm,
+  },
+  badgeTxt: {
+    ...typography.caption,
+    fontWeight: '700',
+  },
+  muted: {
+    ...typography.body,
+    color: colors.textMuted,
+    marginTop: spacing.sm,
+    lineHeight: 20,
+  },
+  note: {
+    ...typography.caption,
+    marginTop: spacing.xs,
+    lineHeight: 18,
+  },
+  fineprint: {
+    ...typography.caption,
+    marginTop: spacing.sm,
+    lineHeight: 16,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -441,17 +623,30 @@ const s = StyleSheet.create({
     marginTop: spacing.md,
     paddingTop: spacing.md,
   },
-  rowText: { flex: 1 },
-  rowTitle: { ...typography.body, fontWeight: '600' },
-  rowActions: { flexDirection: 'row', marginLeft: spacing.sm },
+  rowText: {
+    flex: 1,
+  },
+  rowTitle: {
+    ...typography.body,
+    fontWeight: '600',
+  },
+  rowActions: {
+    flexDirection: 'row',
+    marginLeft: spacing.sm,
+  },
   form: {
     borderTopColor: colors.border,
     borderTopWidth: StyleSheet.hairlineWidth,
     marginTop: spacing.md,
     paddingTop: spacing.md,
   },
-  field: { marginBottom: spacing.md },
-  fieldLabel: { ...typography.label, marginBottom: spacing.xs },
+  field: {
+    marginBottom: spacing.md,
+  },
+  fieldLabel: {
+    ...typography.label,
+    marginBottom: spacing.xs,
+  },
   input: {
     backgroundColor: colors.surfaceRaised,
     borderColor: colors.border,
@@ -462,7 +657,11 @@ const s = StyleSheet.create({
     color: colors.text,
     ...typography.body,
   },
-  formActions: { flexDirection: 'row', alignItems: 'center', marginTop: spacing.xs },
+  formActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: spacing.xs,
+  },
   btnPrimary: {
     backgroundColor: colors.primary,
     borderRadius: radii.sm,
@@ -471,10 +670,13 @@ const s = StyleSheet.create({
     alignSelf: 'flex-start',
     marginTop: spacing.sm,
   },
-  btnPrimaryTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
+  btnPrimaryTxt: {
+    ...typography.body,
+    color: colors.onPrimary,
+    fontWeight: '700',
+  },
   btnGhost: {
     backgroundColor: colors.surface,
-
     alignSelf: 'flex-start',
     borderRadius: radii.sm,
     paddingVertical: spacing.sm,
@@ -482,14 +684,21 @@ const s = StyleSheet.create({
     marginTop: spacing.md,
     marginRight: spacing.md,
   },
-  btnGhostTxt: { ...typography.body, color: colors.primary, fontWeight: '600' },
+  btnGhostTxt: {
+    ...typography.body,
+    color: colors.primary,
+    fontWeight: '600',
+  },
   btnGhostSm: {
     backgroundColor: colors.surface,
-
     borderRadius: radii.sm,
     paddingVertical: spacing.xs,
     paddingHorizontal: spacing.md,
     marginLeft: spacing.sm,
   },
-  btnGhostSmTxt: { ...typography.caption, color: colors.primary, fontWeight: '600' },
+  btnGhostSmTxt: {
+    ...typography.caption,
+    color: colors.primary,
+    fontWeight: '600',
+  },
 });

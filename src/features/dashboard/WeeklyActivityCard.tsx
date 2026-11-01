@@ -25,31 +25,6 @@ export default function WeeklyActivityCard({ rides, units, nowMs }: Props) {
   const easy = usePrefs().uiMode === 'easy';
   const week: WeeklyActivity = buildWeeklyActivity(rides, nowMs);
 
-  if (week.isEmpty) {
-    return (
-      <View style={s.card}>
-        <View style={s.headRow}>
-          <Text style={[typography.kicker]}>Last 7 days</Text>
-        </View>
-        <Text style={[typography.heading, easy && s.easyHeading]}>No rides this week</Text>
-        <Text style={s.muted}>
-          Your last seven days are clear. Start a ride and its days, distance and time appear here
-          — all worked out on this device.
-        </Text>
-        <View style={s.strip}>
-          {week.days.map((day) => (
-            <View key={day.dayKey} style={s.col}>
-              <View style={[s.dot, s.dotEmpty, day.isToday && s.dotTodayRing]} />
-              <Text style={[s.letter, day.isToday && s.letterToday]}>
-                {WEEKDAY_LETTERS[new Date(`${day.dayKey}T12:00:00`).getDay()]}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
-    );
-  }
-
   return (
     <View style={s.card}>
       <View style={s.headRow}>
@@ -115,14 +90,6 @@ const s = StyleSheet.create({
     borderColor: colors.border,
     padding: spacing.lg,
     marginBottom: spacing.lg,
-<<<<<<< HEAD
-=======
-    shadowColor: '#000000',
-    shadowOpacity: 0.1,
-    shadowRadius: 32,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 6,
->>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
   },
   headRow: {
     flexDirection: 'row',

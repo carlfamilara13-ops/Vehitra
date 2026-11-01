@@ -1,12 +1,9 @@
+
 import React from 'react';
 import type { ColorValue } from 'react-native';
-<<<<<<< HEAD
 import { StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text } from '../../ui/neu/NeuText';
-=======
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
->>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 import { Ionicons } from '@expo/vector-icons';
 import type { WalletDoc } from '../../domain/dashboard/wallet';
 import type { DriverProfile } from '../../domain/driverProfile/profile';
@@ -34,7 +31,13 @@ const PHASE_COLOR: Record<WalletDoc['phase'], ColorValue> = {
 // Section 4 of the dashboard: the document wallet. Two cards — personal driver profile then
 // vehicle registration. The profile card keeps the existing flip interaction, but its faces are
 // native views of the driver's own data rather than bundled credential artwork.
-export default function DocumentWalletCard({ docs, profile, profileUnavailable, onEditProfile, onManage }: Props) {
+export default function DocumentWalletCard({
+  docs,
+  profile,
+  profileUnavailable,
+  onEditProfile,
+  onManage,
+}: Props) {
   return (
     <View style={s.root}>
       <View style={s.headRow}>
@@ -94,7 +97,9 @@ function RegistrationCard({ doc }: { doc: WalletDoc }) {
       </View>
       {doc.subject ? <Text style={s.subject}>{doc.subject}</Text> : null}
       <Text style={s.plate}>{doc.plate ?? 'No plate recorded'}</Text>
-      <Text style={[s.expiry, { color: PHASE_COLOR[doc.phase] }]}>{doc.expiryText}</Text>
+      <Text style={[s.expiry, { color: PHASE_COLOR[doc.phase] }]}>
+        {doc.expiryText}
+      </Text>
     </View>
   );
 }

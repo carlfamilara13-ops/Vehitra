@@ -1,12 +1,9 @@
+
 import React from 'react';
 import type { ColorValue } from 'react-native';
-<<<<<<< HEAD
 import { StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text } from '../../ui/neu/NeuText';
-=======
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
->>>>>>> 085d579c1634fc5cd9a597346cae31cf95b819b5
 import { Ionicons } from '@expo/vector-icons';
 import type { MaintenanceStatus } from '../../domain/maintenance/types';
 import type { BatteryIdleLevel } from '../../domain/battery/idle';
