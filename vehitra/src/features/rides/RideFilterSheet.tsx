@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Keyboard, Modal, ScrollView, StyleSheet } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text, TextInput } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { useNeu } from '../../ui/neu/useNeu';
+import { KeyboardScrollContext, useKeyboardScroll } from '../../ui/keyboardScroll';
 import {
   DEFAULT_RIDE_FILTERS,
   RIDE_SORT_LABELS,
@@ -41,12 +42,13 @@ function sameVehicle(a: VehicleSelection, b: VehicleSelection): boolean {
 
 // Native-feeling filter sheet built on the platform Modal (slide + Android back = dismiss), so
 // no new dependency is introduced. The sheet always edits a DRAFT: changes can be made freely,
-// Apply commits them, Reset puts the draft back to the defaults, and dismissing the sheet —
-// backdrop tap or back button — throws the draft away and keeps the committed filters. Nothing
+// Apply commits them, Reset puts the draft back to the defaults, and dismissing the sheet  
+// backdrop tap or back button   throws the draft away and keeps the committed filters. Nothing
 // here writes to the database, so no ride can be modified from this screen.
 export default function RideFilterSheet({ visible, filters, vehicleOptions, onApply, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const n = useNeu();
+  const keyboardScroll = useKeyboardScroll({ margin: spacing.md, enabled: visible });
 
   const [statuses, setStatuses] = useState<RideStatusValue[]>(filters.statuses);
   const [vehicle, setVehicle] = useState<VehicleSelection>(filters.vehicle);
@@ -116,7 +118,10 @@ export default function RideFilterSheet({ visible, filters, vehicleOptions, onAp
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={s.root}>
+      <KeyboardAvoidingView
+        style={s.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
         <TouchableOpacity
           style={s.backdrop}
           activeOpacity={1}
@@ -124,6 +129,7 @@ export default function RideFilterSheet({ visible, filters, vehicleOptions, onAp
           accessibilityRole="button"
           accessibilityLabel="Close filters"
         />
+        <KeyboardScrollContext.Provider value={keyboardScroll.onFocusInput}>
         <View style={[s.sheet, { backgroundColor: n.c.surface, borderTopColor: n.c.shadowDark, paddingBottom: spacing.lg + Math.min(insets.bottom, 24) }]}>
           <View style={s.grabber} pointerEvents="none" />
           <View style={s.head}>
@@ -143,10 +149,13 @@ export default function RideFilterSheet({ visible, filters, vehicleOptions, onAp
           </View>
 
           <ScrollView
+            ref={keyboardScroll.scrollRef}
             style={s.scroll}
             contentContainerStyle={s.scrollContent}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
+            onScroll={keyboardScroll.onScroll}
+            scrollEventThrottle={16}
           >
             <Text style={s.fieldLabel}>Status</Text>
             <View style={[s.chips, { backgroundColor: n.c.surface }]}>
@@ -279,7 +288,8 @@ export default function RideFilterSheet({ visible, filters, vehicleOptions, onAp
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+        </KeyboardScrollContext.Provider>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -350,7 +360,7 @@ const s = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipTxt: { ...typography.caption, color: colors.textMuted },
-  chipTxtSelected: { color: colors.onPrimary, fontWeight: '700' },
+  chipTxtSelected: { color: colors.primaryInk, fontWeight: '700' },
   inputRow: { flexDirection: 'row', gap: spacing.sm },
   input: {
     backgroundColor: colors.surfaceRaised,
@@ -391,5 +401,5 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   applyDisabled: { opacity: 0.45 },
-  applyTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
+  applyTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
 });

@@ -15,7 +15,7 @@ import {
   type RemoteIndexModelRow,
   type RemotePackRow,
 } from './catalogMap';
-import { getSupabase, hasSupabaseConfig } from './client';
+import { getPublicSupabase, hasSupabaseConfig } from './client';
 import { fetchAllPages } from './pagination';
 
 // One-model resource-pack download. The cloud catalog is versioned and read-only for users:
@@ -44,7 +44,7 @@ export async function downloadCatalogIndex(): Promise<CatalogIndexResult> {
     return { ok: false, reason: 'not_configured', message: 'Cloud catalog is not configured.' };
   }
   try {
-    const supabase = getSupabase();
+    const supabase = getPublicSupabase();
     const [brandPage, modelPage] = await Promise.all([
       fetchAllPages<RemoteBrandRow>((from, to) =>
         supabase.from('brands').select('slug, name').order('slug').range(from, to),
@@ -52,7 +52,7 @@ export async function downloadCatalogIndex(): Promise<CatalogIndexResult> {
       fetchAllPages<RemoteIndexModelRow>((from, to) =>
         supabase
           .from('vehicle_models')
-          .select('slug, name, is_generic, sort_order, brand:brands(slug), vehicle_type:vehicle_types(code)')
+          .select('slug, name, is_generic, sort_order, brand:brands(slug), vehicle_type:vehicle_types(code), image:assets!vehicle_models_image_asset_id_fkey(storage_path)')
           .eq('active', true)
           .order('slug')
           .range(from, to),
@@ -80,7 +80,7 @@ export async function downloadModelPack(modelSlug: string): Promise<CatalogDownl
     return { ok: false, reason: 'not_configured', message: 'Cloud catalog is not configured.' };
   }
   try {
-    const supabase = getSupabase();
+    const supabase = getPublicSupabase();
 
     const model = await supabase
       .from('vehicle_models')
@@ -94,7 +94,7 @@ export async function downloadModelPack(modelSlug: string): Promise<CatalogDownl
     const version = model.data.current_version;
     const rows = await supabase
       .from('model_components')
-      .select('interval_km, warn_remaining_pct, review_status, source_note, component:component_definitions(code)')
+      .select('interval_km, interval_days, warn_remaining_pct, review_status, source_note, component:component_definitions(code)')
       .eq('model_id', model.data.id)
       .eq('version', version);
     if (rows.error) return { ok: false, reason: 'network', message: rows.error.message };

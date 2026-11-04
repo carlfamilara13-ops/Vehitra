@@ -3,10 +3,11 @@ import { serialize } from './serialize';
 import type { Db } from './types';
 import { getVehicle } from './vehicleStore';
 import { MaintenanceNotFoundError, MaintenanceValidationError } from './maintenanceErrors';
+import { getCustomPart } from './customPartStore';
 
 // Per-vehicle component overrides (schema v5). The only maintenance table the user can edit and
 // delete: it holds a custom distance interval, an optional day interval (stored, not yet evaluated)
-// and an enable/disable flag. Keyed by (user_vehicle_id, component_code) — the local stand-in for the
+// and an enable/disable flag. Keyed by (user_vehicle_id, component_code)   the local stand-in for the
 // cloud's component_definitions uuid.
 
 export type ComponentOverrideRow = {
@@ -32,9 +33,9 @@ export type ComponentOverrideInput = {
   enabled?: boolean;
 };
 
-export function validateComponentOverrideInput(input: ComponentOverrideInput): string[] {
+export function validateComponentOverrideInput(input: ComponentOverrideInput, allowCustom = false): string[] {
   const errors: string[] = [];
-  if (!getComponentDefinition(input.component_code)) errors.push('Unknown component.');
+  if (!getComponentDefinition(input.component_code) && !allowCustom) errors.push('Unknown component.');
   if (input.interval_km != null && (!Number.isFinite(input.interval_km) || input.interval_km <= 0)) {
     errors.push('Interval must be greater than zero.');
   }
@@ -61,7 +62,7 @@ export function listOverrides(db: Db, userVehicleId: string): Promise<ComponentO
 // Create or update the override for a (vehicle, component). The existing row's id is preserved.
 export function upsertOverride(db: Db, input: ComponentOverrideInput, now = Date.now()): Promise<ComponentOverrideRow> {
   return serialize(async () => {
-    const errors = validateComponentOverrideInput(input);
+    const errors = validateComponentOverrideInput(input, !!await getCustomPart(db, input.user_vehicle_id, input.component_code));
     if (errors.length) throw new MaintenanceValidationError(errors);
     const vehicle = await getVehicle(db, input.user_vehicle_id);
     if (!vehicle) throw new MaintenanceNotFoundError(input.user_vehicle_id);

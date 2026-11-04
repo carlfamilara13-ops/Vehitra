@@ -6,7 +6,8 @@ import { createNodeSqliteDb, hasNodeSqlite } from './nodeSqliteDb.testutil';
 import { createVehicle, setVehicleOdometer } from './vehicleStore';
 import { insertMileageEntry } from './mileageStore';
 import { insertServiceEvent } from './serviceStore';
-import { replaceInstall } from './installStore';
+import { listInstalls, replaceInstall } from './installStore';
+import { createCustomPart } from './customPartStore';
 import { deleteOverride, listOverrides, upsertOverride } from './overrideStore';
 import { MaintenanceValidationError } from './maintenanceErrors';
 import { evaluateVehicleMaintenance, type ComponentMaintenance } from './maintenanceQuery';
@@ -54,6 +55,30 @@ describe('maintenance writes (Stage 4C)', { skip: hasNodeSqlite() ? false : 'nod
 
     assert.deepEqual((await listOverrides(db, 'v1')).map((o) => o.component_code), ['engine_oil']);
     assert.equal((await listOverrides(db, 'v2')).length, 0);
+  });
+
+  it('includes custom parts in the existing interval, status, and history system', async () => {
+    const custom = await createCustomPart(db, {
+      id: 'custom-1', user_vehicle_id: 'v1', component_code: 'custom_auxlight', name: 'Auxiliary light', category: 'electrical',
+    }, T0);
+    const newPart = (await evaluateVehicleMaintenance(db, 'v1'))!.items.find((part) => part.componentCode === custom.component_code);
+    assert.ok(newPart);
+    assert.equal(newPart.evaluation.status, 'unknown');
+    assert.equal(newPart.evaluation.reason, 'no_interval');
+    await upsertOverride(db, { id: 'custom-interval', user_vehicle_id: 'v1', component_code: custom.component_code, interval_km: 500 }, T0);
+    await replaceInstall(db, {
+      id: 'custom-install', user_vehicle_id: 'v1', component_code: custom.component_code,
+      installed_at: T0, install_odo: 1000,
+    }, T0);
+    await addRide('v1', 'custom-ride', 600, T0 + 1);
+
+    const item = (await evaluateVehicleMaintenance(db, 'v1'))!.items.find((part) => part.componentCode === custom.component_code);
+    assert.ok(item);
+    assert.equal(item.name, 'Auxiliary light');
+    assert.equal(item.evaluation.rule?.source, 'override');
+    assert.equal(item.evaluation.status, 'overdue');
+    assert.equal(item.evaluation.progress?.usedKm, 600);
+    assert.equal((await listInstalls(db, 'v1', custom.component_code)).length, 1);
   });
 
   it('an explicit baseline resets only its own component', async () => {
@@ -119,6 +144,28 @@ describe('maintenance writes (Stage 4C)', { skip: hasNodeSqlite() ? false : 'nod
     oil = component((await evaluateVehicleMaintenance(db, 'v1'))!.items, 'engine_oil');
     assert.equal(oil.evaluation.status, 'good');
     assert.equal(oil.evaluation.progress?.usedKm, 0);
+  });
+
+  it('recalculates maintenance progress immediately from a corrected odometer', async () => {
+    await setVehicleOdometer(db, 'v1', 2000, T0 + 1);
+    await insertServiceEvent(db, {
+      id: 's1', user_vehicle_id: 'v1', component_code: 'engine_oil', action: 'replace',
+      performed_at: T0, odo_at: 1000,
+    });
+
+    let oil = component((await evaluateVehicleMaintenance(db, 'v1'))!.items, 'engine_oil');
+    assert.equal(oil.evaluation.progress?.usedKm, 1000);
+    assert.equal(oil.evaluation.status, 'good');
+
+    await setVehicleOdometer(db, 'v1', 2200, T0 + 2);
+    oil = component((await evaluateVehicleMaintenance(db, 'v1'))!.items, 'engine_oil');
+    assert.equal(oil.evaluation.progress?.usedKm, 1200);
+    assert.equal(oil.evaluation.status, 'due_soon');
+
+    await setVehicleOdometer(db, 'v1', 2600, T0 + 3);
+    oil = component((await evaluateVehicleMaintenance(db, 'v1'))!.items, 'engine_oil');
+    assert.equal(oil.evaluation.progress?.usedKm, 1600);
+    assert.equal(oil.evaluation.status, 'overdue');
   });
 
   it('reflects a write on the next read (the screen refresh contract)', async () => {

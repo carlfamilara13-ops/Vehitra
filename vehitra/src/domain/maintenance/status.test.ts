@@ -117,7 +117,7 @@ describe('warn threshold controls the due-soon boundary', () => {
 });
 
 describe('unknown service history', () => {
-  it('no recorded service is unknown — never assumed good, even far past the interval', () => {
+  it('no recorded service is unknown   never assumed good, even far past the interval', () => {
     const r = evaluateComponent(base({ lastServiceOdometerKm: null, currentOdometerKm: 99_999 }));
     assert.equal(r.status, 'unknown');
     assert.equal(r.reason, 'no_service_history');

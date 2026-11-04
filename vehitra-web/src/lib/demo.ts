@@ -268,6 +268,7 @@ function build(): Workspace {
       active: spec.active !== false,
       sort_order: spec.slug === 'yamaha-sniper-155' ? 1 : 100,
       current_version: currentVersion,
+      image_storage_path: null,
       created_at: iso(24 * 60),
       updated_at: iso(24 * 6),
     });

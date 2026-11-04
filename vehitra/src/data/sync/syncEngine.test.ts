@@ -150,7 +150,7 @@ describe('sync engine', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailab
     const report = await runSync(db, fakeRemote(state), { now: T0 });
 
     assert.equal(report.vehicles.pulled, 1);
-    // Only the pre-existing v1 pushes — the pulled row ends the run already synced.
+    // Only the pre-existing v1 pushes   the pulled row ends the run already synced.
     assert.deepEqual(
       state.pushedVehicles.map((r) => r.id),
       ['v1'],
@@ -166,6 +166,27 @@ describe('sync engine', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailab
     assert.equal(created.server_updated_at, CLOUD_T);
     // Odometry has no cloud counterpart: pull never invents one.
     assert.equal(created.odometer_km, null);
+  });
+
+  it('refuses to mutate local or cloud records when a shared ID differs and no choice was reviewed', async () => {
+    const state = freshState({
+      vehicles: [{
+        id: 'v1', model_id: 'm-1', catalog_version: 1, nickname: 'Remote edit',
+        plate: 'REMOTE-1', model_year: 2025, client_updated_at: CLOUD_T,
+        updated_at: CLOUD_T, deleted_at: null,
+      }],
+    });
+
+    const report = await runSync(db, fakeRemote(state), { now: T0 });
+
+    assert.equal(report.ok, false);
+    assert.equal(report.reason, 'review_required');
+    assert.deepEqual(report.conflicts, [{
+      table: 'vehicles', id: 'v1', fields: ['nickname', 'plate', 'model year'],
+    }]);
+    assert.equal((await getVehicle(db, 'v1'))?.nickname, 'Local name');
+    assert.equal(state.pushedVehicles.length, 0);
+    assert.equal(await statusOf(db, 'v1'), 'pending');
   });
 
   it('keeps a locally-newer row, pushes it, and does not let an older cloud row win', async () => {
@@ -186,7 +207,10 @@ describe('sync engine', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailab
       ],
     });
 
-    const report = await runSync(db, fakeRemote(state), { now: T0 });
+    const report = await runSync(db, fakeRemote(state), {
+      now: T0,
+      resolutions: { vehicles: { v1: 'local' } },
+    });
 
     const local = await getVehicle(db, 'v1');
     assert.equal(local?.nickname, 'Local name');
@@ -212,7 +236,10 @@ describe('sync engine', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailab
       ],
     });
 
-    const report = await runSync(db, fakeRemote(state), { now: T0 });
+    const report = await runSync(db, fakeRemote(state), {
+      now: T0,
+      resolutions: { vehicles: { v1: 'account' } },
+    });
 
     const local = await getVehicle(db, 'v1');
     assert.equal(local?.nickname, 'Renamed elsewhere');
@@ -267,7 +294,7 @@ describe('sync engine', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailab
       ['v1'],
     );
     assert.equal(report.deadlines.pushed, 0);
-    // Rows stay pending for a future, successful sync — nothing is discarded.
+    // Rows stay pending for a future, successful sync   nothing is discarded.
     assert.equal(await statusOf(db, 'v-plain'), 'pending');
   });
 
@@ -299,7 +326,10 @@ describe('sync engine', { skip: hasNodeSqlite() ? false : 'node:sqlite unavailab
       ],
     });
 
-    const report = await runSync(db, fakeRemote(state), { now: T0 });
+    const report = await runSync(db, fakeRemote(state), {
+      now: T0,
+      resolutions: { vehicles: { v1: 'account' } },
+    });
 
     assert.equal(report.vehicles.pulled, 1);
     const local = await getVehicle(db, 'v1');

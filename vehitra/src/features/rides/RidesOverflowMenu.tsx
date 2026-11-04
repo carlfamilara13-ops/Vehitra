@@ -28,7 +28,7 @@ const DISPLAY_OPTIONS: { value: RideDisplayMode; label: string; icon: keyof type
 ];
 
 // Overflow menu for the Rides header: sorting and the list display preference live together
-// here (sorting is also editable from the filter sheet — both write the same screen state).
+// here (sorting is also editable from the filter sheet   both write the same screen state).
 // Rendered in a transparent modal so the Android back button and a backdrop tap both dismiss
 // it; selections apply immediately and close the menu.
 export default function RidesOverflowMenu({

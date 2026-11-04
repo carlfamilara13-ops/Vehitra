@@ -18,7 +18,7 @@ type Props = {
 const WEEKDAY_LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as const;
 
 // Section 3 of the dashboard: the weekly activity hero. Every figure comes from
-// buildWeeklyActivity over saved rides — no animation counts numbers up, so what is shown is
+// buildWeeklyActivity over saved rides   no animation counts numbers up, so what is shown is
 // always the real stored total. Empty weeks get an explicit empty state instead of a wall of
 // zeroes.
 export default function WeeklyActivityCard({ rides, units, nowMs }: Props) {

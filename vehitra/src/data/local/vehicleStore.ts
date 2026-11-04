@@ -1,4 +1,4 @@
-import { getMeta, setMeta } from './ridesStore';
+import { getMeta, setMeta } from './metaStore';
 import { serialize } from './serialize';
 import type { Db } from './types';
 
@@ -185,8 +185,8 @@ export function updateVehicle(
 // Update only the current odometer reading. Kept separate from updateVehicle so a reading update
 // never resends (and cannot clobber) the rest of the profile. This records the dashboard number the
 // user is looking at; it deliberately writes NO maintenance ledger row and never establishes a
-// baseline — maintenance usage comes only from applied_km (see maintenanceQuery.sumAppliedKmSince),
-// so an odometer update can never fabricate distance or mark unknown history as healthy.
+// baseline. Maintenance uses this reading against a recorded component baseline when available,
+// otherwise it continues to use applied_km from the mileage ledger.
 export function setVehicleOdometer(
   db: Db,
   id: string,

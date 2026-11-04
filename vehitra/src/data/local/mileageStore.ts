@@ -119,7 +119,7 @@ export function insertMileageEntry(db: Db, input: MileageEntryInput, now = Date.
 }
 
 // The un-serialized core, so callers that already hold the write queue (voidMileageEntry) never
-// nest serialize() — the queue is strictly FIFO and a nested run would deadlock.
+// nest serialize()   the queue is strictly FIFO and a nested run would deadlock.
 async function insertMileageRow(db: Db, input: MileageEntryInput, now: number): Promise<MileageEntryRow> {
   const errors = validateMileageEntryInput(input);
   if (errors.length) throw new MaintenanceValidationError(errors);

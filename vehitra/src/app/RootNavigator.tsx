@@ -1,11 +1,12 @@
 
-import React, { useMemo } from 'react';
-import { StyleSheet, View, Pressable } from 'react-native';
+import React, { useEffect, useRef, useMemo } from 'react';
+import { Linking, StyleSheet, View, Pressable } from 'react-native';
 import type { BottomTabBarButtonProps } from '@react-navigation/bottom-tabs';
 import {
   DarkTheme,
   DefaultTheme,
   NavigationContainer,
+  type NavigationContainerRef,
   type Theme,
 } from '@react-navigation/native';
 import {
@@ -27,6 +28,7 @@ import RideDetailScreen from '../features/rides/RideDetailScreen';
 import EquipmentScreen from '../features/garage/EquipmentScreen';
 import DeadlinesScreen from '../features/deadlines/DeadlinesScreen';
 import AccountScreen from '../features/settings/AccountScreen';
+import VerificationScreen from '../features/settings/VerificationScreen';
 
 import NeuTabBarBackground from '../ui/neu/NeuTabBarBackground';
 import { useNeu } from '../ui/neu/useNeu';
@@ -64,6 +66,7 @@ export type RootTabParamList = {
   Equipment: { vehicleId?: string } | undefined;
   Deadlines: undefined;
   Account: undefined;
+  Verification: { token_hash: string } | { error: string; error_description: string };
 };
 
 const Tab = createBottomTabNavigator<RootTabParamList>();
@@ -166,10 +169,90 @@ function CustomTabButton({
   );
 }
 
+type ParsedCallback =
+  | { kind: 'token_hash'; token_hash: string }
+  | { kind: 'error'; error: string; description: string };
+
+/**
+ * Parse a vehitra://login-callback deep link.
+ *
+ * Supabase delivers the callback parameters in the query string:
+ *   vehitra://login-callback?token_hash=<hash>&type=signup
+ *
+ * Error cases (e.g. expired link tapped in browser) arrive as:
+ *   vehitra://login-callback?error=access_denied&error_description=...
+ *
+ * Both query-string and fragment forms are checked so the parser is
+ * resilient to any future Supabase redirect behaviour change.
+ */
+function parseCallbackUrl(url: string): ParsedCallback | null {
+  try {
+    const parsed = new URL(url);
+    // Check query string first, then fragment (fragment is never sent by the
+    // standard Supabase email template but guard against it anyway).
+    const sources = [parsed.searchParams];
+    if (parsed.hash) {
+      try {
+        sources.push(new URLSearchParams(parsed.hash.slice(1)));
+      } catch { /* ignore malformed fragment */ }
+    }
+    for (const params of sources) {
+      const error = params.get('error');
+      if (error) {
+        return {
+          kind: 'error',
+          error,
+          description: params.get('error_description') ?? error,
+        };
+      }
+      const tokenHash = params.get('token_hash');
+      const type = params.get('type');
+      if (tokenHash && type === 'signup') {
+        return { kind: 'token_hash', token_hash: tokenHash };
+      }
+    }
+  } catch { /* malformed URL — ignore */ }
+  return null;
+}
+
 export default function RootNavigator() {
   const insets = useSafeAreaInsets();
   const { appearance } = usePrefs();
   const n = useNeu();
+  const navRef = useRef<NavigationContainerRef<RootTabParamList>>(null);
+
+  // Handle deep links that open the app from a closed state (cold start).
+  // Also subscribe to links received while the app is already running (foreground).
+  useEffect(() => {
+    const navigate = (url: string) => {
+      const result = parseCallbackUrl(url);
+      if (!result) return;
+      const tryNavigate = () => {
+        if (navRef.current?.isReady()) {
+          if (result.kind === 'token_hash') {
+            navRef.current.navigate('Verification', { token_hash: result.token_hash });
+          } else {
+            navRef.current.navigate('Verification', {
+              error: result.error,
+              error_description: result.description,
+            });
+          }
+        } else {
+          setTimeout(tryNavigate, 50);
+        }
+      };
+      tryNavigate();
+    };
+
+    // Cold start: app was not running when the link was tapped.
+    void Linking.getInitialURL().then((url) => {
+      if (url) navigate(url);
+    });
+
+    // Foreground: app was already open when the link was tapped.
+    const subscription = Linking.addEventListener('url', ({ url }) => navigate(url));
+    return () => subscription.remove();
+  }, []);
 
   const baseNavigationTheme =
     appearance === 'light' ? DefaultTheme : DarkTheme;
@@ -191,16 +274,13 @@ export default function RootNavigator() {
   );
 
   return (
-    <NavigationContainer theme={navTheme}>
+    <NavigationContainer theme={navTheme} ref={navRef}>
       <Tab.Navigator
         screenOptions={{
           headerShown: false,
 
           tabBarActiveTintColor: n.c.accentText,
           tabBarInactiveTintColor: n.c.textMuted,
-
-          tabBarPressColor: 'transparent',
-          tabBarPressOpacity: 1,
 
           tabBarButton: (props) => <CustomTabButton {...props} />,
 
@@ -327,6 +407,13 @@ export default function RootNavigator() {
           component={AccountScreen}
           options={hiddenTabOptions}
         />
+
+        <Tab.Screen
+          name="Verification"
+          component={VerificationScreen}
+          options={hiddenTabOptions}
+        />
+
       </Tab.Navigator>
     </NavigationContainer>
   );

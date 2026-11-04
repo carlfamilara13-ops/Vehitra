@@ -3,9 +3,12 @@ import assert from 'node:assert/strict';
 import { migrate } from '../../data/local/migrate';
 import { MIGRATIONS } from '../../data/local/migrations';
 import { createNodeSqliteDb, hasNodeSqlite } from '../../data/local/nodeSqliteDb.testutil';
-import { createVehicle } from '../../data/local/vehicleStore';
+import { createVehicle, setVehicleOdometer } from '../../data/local/vehicleStore';
 import { upsertDeadline } from '../../data/local/deadlineStore';
 import { recordBatteryUse } from '../../data/local/batteryStore';
+import { upsertOverride } from '../../data/local/overrideStore';
+import { createCustomPart } from '../../data/local/customPartStore';
+import { insertServiceEvent } from '../../data/local/serviceStore';
 import { listReminderSchedule } from '../../data/local/reminderStore';
 import { updateAppSettings } from '../../data/local/settingsStore';
 import { syncReminders } from './scheduler';
@@ -200,6 +203,67 @@ describe('reminder scheduler', { skip: hasNodeSqlite() ? false : 'node:sqlite un
     assert.equal(scheduledRows(await listReminderSchedule(db)).length, 0);
   });
 
+  it('schedules a user-configured time maintenance reminder from its baseline', async () => {
+    await upsertOverride(db, {
+      id: 'override-1', user_vehicle_id: 'v1', component_code: 'engine_oil', interval_days: 10,
+    }, T0);
+    await insertServiceEvent(db, {
+      id: 'baseline-1', user_vehicle_id: 'v1', component_code: 'engine_oil',
+      action: 'baseline', performed_at: T0, estimated: true,
+    }, T0);
+    const { adapter, calls } = fakeAdapter();
+
+    const result = await syncReminders(db, adapter, T0 + 7 * 86_400_000);
+
+    assert.equal(result.plans, 1);
+    assert.equal(calls.scheduled.length, 1);
+    assert.equal(calls.scheduled[0].title.includes('time service'), true);
+    const rows = scheduledRows(await listReminderSchedule(db));
+    assert.equal(rows[0].kind, 'maintenance_time');
+  });
+
+  it('schedules a time reminder for a custom part using its existing maintenance record', async () => {
+    const part = await createCustomPart(db, {
+      id: 'custom-1', user_vehicle_id: 'v1', component_code: 'custom_auxlight', name: 'Auxiliary light', category: 'electrical',
+    }, T0);
+    await upsertOverride(db, {
+      id: 'custom-interval', user_vehicle_id: 'v1', component_code: part.component_code, interval_days: 10,
+    }, T0);
+    await insertServiceEvent(db, {
+      id: 'custom-baseline', user_vehicle_id: 'v1', component_code: part.component_code,
+      action: 'replace', performed_at: T0, estimated: false,
+    }, T0);
+    const { adapter, calls } = fakeAdapter();
+
+    const result = await syncReminders(db, adapter, T0 + 7 * 86_400_000);
+
+    assert.equal(result.plans, 1);
+    assert.equal(calls.scheduled.length, 1);
+    assert.match(calls.scheduled[0].body, /Auxiliary light/);
+    assert.equal(scheduledRows(await listReminderSchedule(db))[0].kind, 'maintenance_time');
+  });
+
+  it('delivers an overdue maintenance notice immediately and does not reschedule it on refresh', async () => {
+    await setVehicleOdometer(db, 'v1', 2600, T0 + 1);
+    await insertServiceEvent(db, {
+      id: 'oil-replaced', user_vehicle_id: 'v1', component_code: 'engine_oil',
+      action: 'replace', performed_at: T0, odo_at: 1000,
+    }, T0);
+    await upsertOverride(db, {
+      id: 'oil-interval', user_vehicle_id: 'v1', component_code: 'engine_oil', interval_km: 1500,
+    }, T0);
+
+    const first = fakeAdapter();
+    const scheduled = await syncReminders(db, first.adapter, T0 + 2);
+    assert.equal(scheduled.plans, 1);
+    assert.equal(first.calls.scheduled[0].immediate, true);
+    assert.match(first.calls.scheduled[0].title, /overdue/i);
+
+    const second = fakeAdapter();
+    const refreshed = await syncReminders(db, second.adapter, T0 + 3);
+    assert.equal(refreshed.unchanged, 1);
+    assert.equal(second.calls.scheduled.length, 0);
+  });
   it('plans battery-idle reminders from the last check-in', async () => {
     await recordBatteryUse(db, 'v1', T0 - 10 * 86_400_000, null, T0);
     const { adapter, calls } = fakeAdapter();

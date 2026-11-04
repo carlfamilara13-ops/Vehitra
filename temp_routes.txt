@@ -1,0 +1,23 @@
+﻿
+vehitra\src\app\RootNavigator.tsx:145:        name={name}
+vehitra\src\app\RootNavigator.tsx:159:      <TabGlyph name={name} focused={focused} />
+vehitra\src\app\RootNavigator.tsx:257:          name="Dashboard"
+vehitra\src\app\RootNavigator.tsx:265:          name="Rides"
+vehitra\src\app\RootNavigator.tsx:273:          name="Record"
+vehitra\src\app\RootNavigator.tsx:281:          name="Parts"
+vehitra\src\app\RootNavigator.tsx:289:          name="Settings"
+vehitra\src\app\RootNavigator.tsx:298:          name="Diagnostics"
+vehitra\src\app\RootNavigator.tsx:304:          name="Garage"
+vehitra\src\app\RootNavigator.tsx:310:          name="VehicleLibrary"
+vehitra\src\app\RootNavigator.tsx:316:          name="VehicleForm"
+vehitra\src\app\RootNavigator.tsx:322:          name="RideDetail"
+vehitra\src\app\RootNavigator.tsx:328:          name="Equipment"
+vehitra\src\app\RootNavigator.tsx:334:          name="Deadlines"
+vehitra\src\app\RootNavigator.tsx:340:          name="Account"
+vehitra\src\app\RootNavigator.tsx:347:          name="Auth"
+vehitra\src\app\RootNavigator.tsx:352:          name="Verification"
+vehitra\src\app\RootNavigator.tsx:357:          name="AccountSetup"
+vehitra\src\app\RootNavigator.tsx:362:          name="ForgotPassword"
+vehitra\src\app\RootNavigator.tsx:367:          name="ResendVerification"
+
+

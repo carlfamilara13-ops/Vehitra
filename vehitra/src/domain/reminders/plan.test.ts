@@ -4,6 +4,7 @@ import {
   planBatteryReminders,
   planDeadlineReminders,
   planMaintenanceReminders,
+  planMaintenanceTimeReminders,
   planReminders,
   type DeadlineReminderInput,
 } from './plan';
@@ -25,7 +26,7 @@ const deadline = (over: Partial<DeadlineReminderInput> = {}): DeadlineReminderIn
   ...over,
 });
 
-describe('reminder planner — deadlines', () => {
+describe('reminder planner   deadlines', () => {
   it('plans the next applicable offset notice', () => {
     const plans = planDeadlineReminders([deadline()], NOW);
     assert.equal(plans.length, 1);
@@ -70,7 +71,7 @@ describe('reminder planner — deadlines', () => {
   });
 });
 
-describe('reminder planner — battery idle', () => {
+describe('reminder planner   battery idle', () => {
   const battery = (daysAgo: number) => ({
     vehicleId: 'v1',
     vehicleName: 'Daily',
@@ -108,7 +109,7 @@ function HOUR() {
   return 3_600_000;
 }
 
-describe('reminder planner — maintenance and composition', () => {
+describe('reminder planner   maintenance and composition', () => {
   it('creates one stable key per vehicle+component for due/overdue items', () => {
     const items = [
       { vehicleId: 'v1', vehicleName: 'Daily', componentCode: 'engine_oil', componentName: 'Engine Oil', status: 'overdue' as const },
@@ -118,6 +119,24 @@ describe('reminder planner — maintenance and composition', () => {
     assert.equal(plans.length, 2);
     assert.equal(plans[0].key, planMaintenanceReminders(items, NOW + HOUR())[0].key);
     assert.equal(new Set(plans.map((p) => p.key)).size, 2);
+  });
+
+  it('plans user-configured time maintenance from a known reset date only', () => {
+    const baselineAt = new Date(2026, 9, 1).getTime();
+    const item = {
+      vehicleId: 'v1', vehicleName: 'Daily', componentCode: 'engine_oil',
+      componentName: 'Engine Oil', baselineAt, intervalDays: 30,
+    };
+    const upcoming = planMaintenanceTimeReminders([item], new Date(2026, 9, 25, 12).getTime());
+    assert.equal(upcoming.length, 1);
+    assert.equal(upcoming[0].kind, 'maintenance_time');
+    assert.equal(upcoming[0].urgency, 'due_soon');
+    assert.match(upcoming[0].body, /30-day interval/);
+
+    const overdue = planMaintenanceTimeReminders([item], new Date(2026, 10, 1, 12).getTime());
+    assert.equal(overdue.length, 1);
+    assert.equal(overdue[0].urgency, 'overdue');
+    assert.equal(planMaintenanceTimeReminders([{ ...item, baselineAt: Number.NaN }], NOW).length, 0);
   });
 
   it('sorts by urgency, then fire time, then key, combining all sources', () => {

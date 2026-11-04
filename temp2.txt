@@ -1,0 +1,7 @@
+﻿
+vehitra\src\features\settings\AccountScreen.tsx:104:  const createAccount = useCallback(async () => {
+vehitra\src\features\settings\AccountScreen.tsx:118:      const { data, error } = await getSupabase().auth.signUp({ email: addr, 
+password });
+vehitra\src\features\settings\AccountScreen.tsx:484:            onPress={() => void createAccount()}
+
+

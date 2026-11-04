@@ -29,7 +29,7 @@ describe('catalog resource pack validation', () => {
     assert.equal(validateCatalogPack([row({ intervalKm: 0 })]).length, 1);
     assert.equal(validateCatalogPack([row({ intervalKm: -5 })]).length, 1);
     assert.equal(validateCatalogPack([row({ intervalKm: Number.NaN })]).length, 1);
-    // null interval is valid — it means "not set, pending review"
+    // null interval is valid   it means "not set, pending review"
     assert.deepEqual(validateCatalogPack([row({ intervalKm: null })]), []);
   });
 

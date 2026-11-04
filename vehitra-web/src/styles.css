@@ -950,6 +950,19 @@ button:disabled {
   gap: 15px;
 }
 
+.model-image-field {
+  display: grid;
+  gap: 10px;
+}
+
+.model-image-field img {
+  width: min(100%, 280px);
+  height: 150px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: var(--surface-raised);
+}
+
 .form-error {
   margin: 0;
   padding: 9px 11px;

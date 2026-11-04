@@ -1,7 +1,7 @@
 import type { ImageSourcePropType } from 'react-native';
 
 // ---------------------------------------------------------------------------------------
-// Showroom artwork registry (TEMPORARY — Stage 2 demo art)
+// Showroom artwork registry (TEMPORARY   Stage 2 demo art)
 //
 // This is the ONE place the Record tab's showroom imagery is referenced. Everything else
 // (the carousel page, the image frame) asks this module for a picture and never names a file,
@@ -10,13 +10,13 @@ import type { ImageSourcePropType } from 'react-native';
 //   1. Drop the real images under `assets/showroom/` (or anywhere Metro can resolve them).
 //   2. Point the entry for that vehicle type at the new file.
 //   3. When vehicles gain their own image column, resolve the source per vehicle id here
-//      instead of per vehicle type — the frame and the carousel do not need to change.
+//      instead of per vehicle type   the frame and the carousel do not need to change.
 //
 // The supplied art is temporary placeholder material for this stage:
-//   - `showroom-bg.jpg`   — the showroom backdrop, drawn behind the vehicle.
-//   - `motorcycle.png`    — the foreground vehicle. It is a transparent PNG (RGBA), so the
+//   - `showroom-bg.jpg`     the showroom backdrop, drawn behind the vehicle.
+//   - `motorcycle.png`      the foreground vehicle. It is a transparent PNG (RGBA), so the
 //                           showroom backdrop stays visible through and around the machine.
-//   - `motorcycle-alt.webp` — the same bike as a square WebP, kept as the drop-in alternative
+//   - `motorcycle-alt.webp`   the same bike as a square WebP, kept as the drop-in alternative
 //                           for `motorcycle.png` (swap the two `require` calls below).
 //
 // Nothing here is generated or substituted: these are the supplied files, copied as-is.
@@ -35,7 +35,7 @@ const DEMO_VEHICLE_IMAGE: ImageSourcePropType = require('../../../assets/showroo
  */
 const VEHICLE_IMAGES_BY_TYPE: Readonly<Record<string, ImageSourcePropType | null>> = {
   motorcycle: DEMO_VEHICLE_IMAGE,
-  // car: null,   // no picture for this type — the type glyph is used instead
+  // car: null,   // no picture for this type   the type glyph is used instead
 };
 
 /**

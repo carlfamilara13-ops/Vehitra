@@ -1,0 +1,23 @@
+﻿
+vehitra\src\data\remote\client.ts:65:export function getSupabase(): SupabaseClient {
+vehitra\src\data\remote\client.ts:77:      persistSession: true,
+vehitra\src\data\remote\client.ts:78:      autoRefreshToken: true,
+vehitra\src\data\remote\client.ts:83:      emailRedirectTo: verificationRedirectUrl(),
+vehitra\src\data\remote\client.ts:99:    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+vehitra\src\data\remote\client.ts:133:export async function signUp(email: string, password: string) {
+vehitra\src\data\remote\client.ts:134:  const supabase = getSupabase();
+vehitra\src\data\remote\client.ts:135:  const { data, error } = await supabase.auth.signUp({
+vehitra\src\data\remote\client.ts:140:    emailRedirectTo: verificationRedirectUrl(),
+vehitra\src\data\remote\client.ts:147:  const supabase = getSupabase();
+vehitra\src\data\remote\client.ts:158:  type: 'email_token' | 'signup',
+vehitra\src\data\remote\client.ts:160:  const supabase = getSupabase();
+vehitra\src\data\remote\client.ts:170:  const supabase = getSupabase();
+vehitra\src\data\remote\client.ts:177:  const supabase = getSupabase();
+vehitra\src\data\remote\client.ts:183:export async function getSession(): Promise<{ session: NonNullable<ReturnType<typeof 
+getSupabase>['auth']['getSession']>['data']['session'] } | null> {
+vehitra\src\data\remote\client.ts:184:  const supabase = getSupabase();
+vehitra\src\data\remote\client.ts:196:export async function getCurrentUser(): Promise<{ user: NonNullable<ReturnType<typeof 
+getSupabase>['auth']['getSession']>['data']['session'] extends { user: infer U } ? U : never } | null> {
+vehitra\src\data\remote\client.ts:197:  const supabase = getSupabase();
+
+

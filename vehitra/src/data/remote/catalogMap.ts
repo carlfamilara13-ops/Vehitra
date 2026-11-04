@@ -7,6 +7,7 @@ import type { CatalogIndexBrand, CatalogIndexModel } from '../../domain/catalog/
 // Row shape returned by PostgREST for the one-model pack query.
 export type RemotePackRow = {
   interval_km: number | null;
+  interval_days?: number | null;
   warn_remaining_pct: number | string | null;
   review_status: string;
   source_note: string | null;
@@ -27,6 +28,7 @@ export type RemoteIndexModelRow = {
   sort_order: number | string | null;
   brand: EmbeddedRow<{ slug: string }>;
   vehicle_type: EmbeddedRow<{ code: string }>;
+  image: EmbeddedRow<{ storage_path: string }>;
 };
 
 const firstEmbedded = <T>(value: EmbeddedRow<T>): T | null => {
@@ -48,6 +50,7 @@ export function remoteModelToIndex(row: RemoteIndexModelRow): CatalogIndexModel 
     name: row.name,
     isGeneric: row.is_generic,
     sortOrder: Number.isFinite(rawSort) ? rawSort : Number.NaN,
+    imageStoragePath: firstEmbedded(row.image)?.storage_path ?? null,
   };
 }
 
@@ -61,6 +64,7 @@ export function remoteRowToPackRow(modelSlug: string, version: number, row: Remo
     componentCode: row.component?.code ?? '',
     version,
     intervalKm: row.interval_km ?? null,
+    intervalDays: row.interval_days ?? null,
     warnRemainingPct: Number(row.warn_remaining_pct ?? 25),
     reviewStatus: row.review_status === 'reviewed' ? 'reviewed' : 'draft',
     sourceNote: row.source_note,

@@ -2,7 +2,7 @@
 //
 // The wallet is a faithful view over reminders that already exist: the driver's licence (a
 // user-level kind) and the active vehicle's registration. Nothing is added to the database,
-// no document is uploaded, and no certificate number is invented — an absent value is shown as
+// no document is uploaded, and no certificate number is invented   an absent value is shown as
 // not recorded. Phase expected from the shared `deadlinePhase` helper so the wallet, the
 // dashboard reminder card and the reminders screen always agree on what "due soon" means.
 

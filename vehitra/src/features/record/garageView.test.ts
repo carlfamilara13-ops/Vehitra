@@ -90,8 +90,8 @@ describe('garageView: odometer display', () => {
   });
 
   it('keeps the unit when no reading exists', () => {
-    assert.deepEqual(odometerDisplay(null, 'metric'), { value: '—', unit: 'km' });
-    assert.deepEqual(odometerDisplay(Number.NaN, 'imperial'), { value: '—', unit: 'mi' });
+    assert.deepEqual(odometerDisplay(null, 'metric'), { value: ' ', unit: 'km' });
+    assert.deepEqual(odometerDisplay(Number.NaN, 'imperial'), { value: ' ', unit: 'mi' });
   });
 });
 

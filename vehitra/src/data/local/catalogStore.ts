@@ -1,3 +1,4 @@
+
 import {
   validateCatalogPack,
   type CatalogPackRow,
@@ -13,12 +14,8 @@ import { serialize } from './serialize';
 import type { Db } from './types';
 import { MaintenanceValidationError } from './maintenanceErrors';
 
-// Local vehicle catalog (schema v9): the brand/model index plus per-model resource packs.
-// This is the offline mirror of the shared cloud catalog, keyed by the same stable slugs.
-// The UI always reads from here, so catalog growth is data, not code: new models arrive via a
-// one-model pack download or a catalog sync (src/data/remote/catalog.ts) — never a bundled
-// full-manufacturer dump. Every row keeps its review status and provenance so draft data can
-// never be mistaken for a manufacturer specification.
+// Local vehicle catalog: brand/model index plus per-model, versioned resource packs.
+// Older pack versions are retained so vehicles can continue using their assigned version.
 
 export type CatalogBrandRow = {
   slug: string;
@@ -34,6 +31,9 @@ export type CatalogModelRow = {
   is_generic: number;
   sort_order: number;
   active: number;
+  image_storage_path: string | null;
+  image_local_uri: string | null;
+  image_cached_storage_path: string | null;
 };
 
 type CatalogComponentRow = {
@@ -41,6 +41,7 @@ type CatalogComponentRow = {
   component_code: string;
   version: number;
   interval_km: number | null;
+  interval_days: number | null;
   warn_remaining_pct: number;
   review_status: string;
   source_note: string | null;
@@ -73,25 +74,34 @@ export function listCatalogModels(
       vehicleType,
     );
   }
+
   return db.getAllAsync<CatalogModelRow>(
     `SELECT * FROM catalog_models
       WHERE vehicle_type = ? AND active = 1 AND brand_slug = ?
       ORDER BY sort_order ASC, name ASC`,
-    vehicleType, brandSlug,
+    vehicleType,
+    brandSlug,
   );
 }
 
 export async function getCatalogModel(db: Db, slug: string): Promise<CatalogModelRow | null> {
-  return db.getFirstAsync<CatalogModelRow>('SELECT * FROM catalog_models WHERE slug = ?', slug);
+  return db.getFirstAsync<CatalogModelRow>(
+    'SELECT * FROM catalog_models WHERE slug = ?',
+    slug,
+  );
 }
 
-// True when the type has generic ("Other …") models — the Library offers that as the last
-// brand step so a user with an unlisted model can still pick a resource pack.
+// True when the type has generic ("Other …") models.
 export async function hasGenericModels(db: Db, vehicleType: string): Promise<boolean> {
   const row = await db.getFirstAsync<{ n: number }>(
-    'SELECT COUNT(*) AS n FROM catalog_models WHERE vehicle_type = ? AND brand_slug IS NULL AND active = 1',
+    `SELECT COUNT(*) AS n
+       FROM catalog_models
+      WHERE vehicle_type = ?
+        AND brand_slug IS NULL
+        AND active = 1`,
     vehicleType,
   );
+
   return (row?.n ?? 0) > 0;
 }
 
@@ -102,6 +112,7 @@ export async function replaceCatalogIndex(
 ): Promise<{ brands: number; models: number }> {
   const errors = validateCatalogIndex(brands, models);
   if (errors.length) throw new MaintenanceValidationError(errors);
+
   return serialize(async () => {
     await db.withTransactionAsync(async () => {
       for (const brand of brands) {
@@ -109,29 +120,103 @@ export async function replaceCatalogIndex(
           `INSERT INTO catalog_brands (slug, name)
            VALUES (?, ?)
            ON CONFLICT (slug) DO UPDATE SET name = excluded.name`,
-          brand.slug, brand.name,
+          brand.slug,
+          brand.name,
         );
       }
+
       await db.runAsync('UPDATE catalog_models SET active = 0');
+
       for (const model of models) {
         await db.runAsync(
           `INSERT INTO catalog_models
-             (slug, brand_slug, vehicle_type, name, is_generic, sort_order, active)
-           VALUES (?, ?, ?, ?, ?, ?, 1)
+             (slug, brand_slug, vehicle_type, name, is_generic, sort_order, active, image_storage_path)
+           VALUES (?, ?, ?, ?, ?, ?, 1, ?)
            ON CONFLICT (slug) DO UPDATE SET
              brand_slug = excluded.brand_slug,
              vehicle_type = excluded.vehicle_type,
              name = excluded.name,
              is_generic = excluded.is_generic,
+             image_local_uri = CASE
+               WHEN catalog_models.image_storage_path = excluded.image_storage_path
+               THEN catalog_models.image_local_uri ELSE NULL END,
+             image_cached_storage_path = CASE
+               WHEN catalog_models.image_storage_path = excluded.image_storage_path
+               THEN catalog_models.image_cached_storage_path ELSE NULL END,
+             image_storage_path = excluded.image_storage_path,
              sort_order = excluded.sort_order,
              active = 1`,
-          model.slug, model.brandSlug, model.vehicleType, model.name,
-          model.isGeneric ? 1 : 0, model.sortOrder,
+          model.slug,
+          model.brandSlug,
+          model.vehicleType,
+          model.name,
+          model.isGeneric ? 1 : 0,
+          model.sortOrder,
+          model.imageStoragePath,
         );
       }
     });
+
     return { brands: brands.length, models: models.length };
   });
+}
+
+export async function getCatalogModelImage(
+  db: Db,
+  modelSlug: string,
+): Promise<{
+  storagePath: string | null;
+  localUri: string | null;
+}> {
+  const row = await db.getFirstAsync<{
+    image_storage_path: string | null;
+    image_local_uri: string | null;
+  }>(
+    'SELECT image_storage_path, image_local_uri FROM catalog_models WHERE slug = ?',
+    modelSlug,
+  );
+
+  return {
+    storagePath: row?.image_storage_path ?? null,
+    localUri: row?.image_local_uri ?? null,
+  };
+}
+
+export async function saveCatalogModelImage(
+  db: Db,
+  modelSlug: string,
+  storagePath: string,
+  localUri: string,
+): Promise<void> {
+  await db.runAsync(
+    `UPDATE catalog_models
+        SET image_local_uri = ?, image_cached_storage_path = ?
+      WHERE slug = ? AND image_storage_path = ?`,
+    localUri,
+    storagePath,
+    modelSlug,
+    storagePath,
+  );
+}
+
+export async function setCatalogModelImageStoragePath(
+  db: Db,
+  modelSlug: string,
+  storagePath: string | null,
+): Promise<void> {
+  await db.runAsync(
+    `UPDATE catalog_models SET
+       image_local_uri = CASE
+         WHEN image_storage_path = ? THEN image_local_uri ELSE NULL END,
+       image_cached_storage_path = CASE
+         WHEN image_storage_path = ? THEN image_cached_storage_path ELSE NULL END,
+       image_storage_path = ?
+     WHERE slug = ?`,
+    storagePath,
+    storagePath,
+    storagePath,
+    modelSlug,
+  );
 }
 
 const toPackRow = (r: CatalogComponentRow): CatalogPackRow => ({
@@ -139,80 +224,179 @@ const toPackRow = (r: CatalogComponentRow): CatalogPackRow => ({
   componentCode: r.component_code,
   version: r.version,
   intervalKm: r.interval_km,
+  intervalDays: r.interval_days,
   warnRemainingPct: r.warn_remaining_pct,
   reviewStatus: r.review_status as CatalogReviewStatus,
   sourceNote: r.source_note,
   provenance: r.provenance as CatalogProvenance,
 });
 
-// The resource pack for one model: every stored component rule row (draft or reviewed).
-export async function getModelPack(db: Db, modelSlug: string): Promise<CatalogPackRow[]> {
-  const rows = await db.getAllAsync<CatalogComponentRow>(
-    `SELECT * FROM catalog_model_components
-      WHERE model_slug = ?
-      ORDER BY component_code ASC`,
-    modelSlug,
-  );
+/**
+ * Get a model's resource pack.
+ *
+ * When version is provided, only that exact version is returned.
+ * When omitted, the latest stored version is returned.
+ *
+ * This allows existing catalog-library callers to keep using the latest
+ * version while vehicle maintenance uses the version assigned to that vehicle.
+ */
+export async function getModelPack(
+  db: Db,
+  modelSlug: string,
+  version?: number,
+): Promise<CatalogPackRow[]> {
+  let rows: CatalogComponentRow[];
+
+  if (version != null) {
+    rows = await db.getAllAsync<CatalogComponentRow>(
+      `SELECT *
+         FROM catalog_model_components
+        WHERE model_slug = ?
+          AND version = ?
+        ORDER BY component_code ASC`,
+      modelSlug,
+      version,
+    );
+  } else {
+    rows = await db.getAllAsync<CatalogComponentRow>(
+      `SELECT *
+         FROM catalog_model_components
+        WHERE model_slug = ?
+          AND version = (
+            SELECT MAX(version)
+              FROM catalog_model_components
+             WHERE model_slug = ?
+          )
+        ORDER BY component_code ASC`,
+      modelSlug,
+      modelSlug,
+    );
+  }
+
   return rows.map(toPackRow);
 }
 
-// Replace a model's pack with validated rows (single transaction). Used by the one-model
-// download and by catalog sync; a rejected row fails the whole pack so evaluation never sees
-// a half-valid set.
-export function replaceModelPack(db: Db, rows: readonly CatalogPackRow[], now = Date.now()): Promise<void> {
+/**
+ * Replace one model/version pack with validated rows.
+ *
+ * Previous versions are deliberately retained because existing vehicles
+ * may still be assigned to them.
+ */
+export function replaceModelPack(
+  db: Db,
+  rows: readonly CatalogPackRow[],
+  now = Date.now(),
+): Promise<void> {
   return serialize(async () => {
     const errors = validateCatalogPack(rows);
     if (errors.length) throw new MaintenanceValidationError(errors);
-    const modelSlug = rows[0]?.modelSlug ?? null;
-    if (modelSlug == null) return;
-    if (!rows.every((r) => r.modelSlug === modelSlug)) {
-      throw new MaintenanceValidationError(['A pack download must cover exactly one model.']);
+
+    const firstRow = rows[0];
+    if (!firstRow) return;
+
+    const modelSlug = firstRow.modelSlug;
+    const version = firstRow.version;
+
+    if (!rows.every((row) => row.modelSlug === modelSlug)) {
+      throw new MaintenanceValidationError([
+        'A pack download must cover exactly one model.',
+      ]);
     }
+
+    if (!rows.every((row) => row.version === version)) {
+      throw new MaintenanceValidationError([
+        'A pack download must cover exactly one version.',
+      ]);
+    }
+
     await db.withTransactionAsync(async () => {
-      await db.runAsync('DELETE FROM catalog_model_components WHERE model_slug = ?', modelSlug);
-      for (const r of rows) {
+      // Replace only this exact version. Do not delete older versions.
+      await db.runAsync(
+        `DELETE FROM catalog_model_components
+          WHERE model_slug = ?
+            AND version = ?`,
+        modelSlug,
+        version,
+      );
+
+      for (const row of rows) {
         await db.runAsync(
           `INSERT INTO catalog_model_components
-             (model_slug, component_code, version, interval_km, warn_remaining_pct,
-              review_status, source_note, provenance, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          r.modelSlug, r.componentCode, r.version, r.intervalKm, r.warnRemainingPct,
-          r.reviewStatus, r.sourceNote, r.provenance, now,
+             (model_slug, component_code, version, interval_km, interval_days,
+              warn_remaining_pct, review_status, source_note, provenance, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          row.modelSlug,
+          row.componentCode,
+          row.version,
+          row.intervalKm,
+          row.intervalDays ?? null,
+          row.warnRemainingPct,
+          row.reviewStatus,
+          row.sourceNote,
+          row.provenance,
+          now,
         );
       }
     });
   });
 }
 
-// Upsert one row (used by targeted remote refresh when a full pack replacement is overkill).
-export function upsertCatalogComponent(db: Db, row: CatalogPackRow, now = Date.now()): Promise<void> {
+// Upsert one row (used by targeted remote refresh).
+export function upsertCatalogComponent(
+  db: Db,
+  row: CatalogPackRow,
+  now = Date.now(),
+): Promise<void> {
   return serialize(async () => {
     const errors = validateCatalogPack([row]);
     if (errors.length) throw new MaintenanceValidationError(errors);
+
     await db.runAsync(
       `INSERT INTO catalog_model_components
-         (model_slug, component_code, version, interval_km, warn_remaining_pct,
-          review_status, source_note, provenance, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+         (model_slug, component_code, version, interval_km, interval_days,
+          warn_remaining_pct, review_status, source_note, provenance, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT (model_slug, component_code, version) DO UPDATE SET
          interval_km = excluded.interval_km,
+         interval_days = excluded.interval_days,
          warn_remaining_pct = excluded.warn_remaining_pct,
          review_status = excluded.review_status,
          source_note = excluded.source_note,
          provenance = excluded.provenance,
          updated_at = excluded.updated_at`,
-      row.modelSlug, row.componentCode, row.version, row.intervalKm, row.warnRemainingPct,
-      row.reviewStatus, row.sourceNote, row.provenance, now,
+      row.modelSlug,
+      row.componentCode,
+      row.version,
+      row.intervalKm,
+      row.intervalDays ?? null,
+      row.warnRemainingPct,
+      row.reviewStatus,
+      row.sourceNote,
+      row.provenance,
+      now,
     );
   });
 }
 
-// Catalog size summary for diagnostics/settings ("N brands · M models · K packs").
-export async function catalogSummary(db: Db): Promise<{ brands: number; models: number; packRows: number }> {
+// Catalog size summary for diagnostics/settings.
+export async function catalogSummary(
+  db: Db,
+): Promise<{ brands: number; models: number; packRows: number }> {
   const [brands, models, packRows] = await Promise.all([
-    db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM catalog_brands'),
-    db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM catalog_models WHERE active = 1'),
-    db.getFirstAsync<{ n: number }>('SELECT COUNT(*) AS n FROM catalog_model_components'),
+    db.getFirstAsync<{ n: number }>(
+      'SELECT COUNT(*) AS n FROM catalog_brands',
+    ),
+    db.getFirstAsync<{ n: number }>(
+      'SELECT COUNT(*) AS n FROM catalog_models WHERE active = 1',
+    ),
+    db.getFirstAsync<{ n: number }>(
+      'SELECT COUNT(*) AS n FROM catalog_model_components',
+    ),
   ]);
-  return { brands: brands?.n ?? 0, models: models?.n ?? 0, packRows: packRows?.n ?? 0 };
+
+  return {
+    brands: brands?.n ?? 0,
+    models: models?.n ?? 0,
+    packRows: packRows?.n ?? 0,
+  };
 }

@@ -5,7 +5,7 @@ import { getAppSettings, type UnitsPref, type UiMode, type AppearancePreference 
 
 // App preferences as reactive state (units, interface mode, and appearance). Settings writes through the
 // store, then calls reload() so every consumer re-renders from the single app_settings row.
-// Until the row loads the defaults are shown, matching the store defaults — never a flash of
+// Until the row loads the defaults are shown, matching the store defaults   never a flash of
 // a value the device would not actually use.
 
 export type Prefs = {

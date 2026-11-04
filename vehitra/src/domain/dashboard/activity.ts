@@ -5,7 +5,7 @@
 // so it stays a pure function that can be reasoned about and tested without a database.
 //
 // Distance and duration are used exactly as stored (`distance_m`, `duration_s`). No alternative
-// ride mathematics is introduced here — the only work is grouping saved rides onto local
+// ride mathematics is introduced here   the only work is grouping saved rides onto local
 // calendar days and summing the stored values.
 
 export const WEEK_LENGTH = 7;
@@ -42,9 +42,9 @@ export type DayActivity = {
 export type WeeklyActivity = {
   /**
    * Consecutive local calendar days with at least one qualifying ride, counting back from
-   * today across all loaded rides — not limited to the seven-day window, so a long streak
-   * reports its true length. When today has no ride yet the streak is not yet broken — it
-   * counts back from yesterday instead — so a streak stays visible for the rest of the day
+   * today across all loaded rides   not limited to the seven-day window, so a long streak
+   * reports its true length. When today has no ride yet the streak is not yet broken   it
+   * counts back from yesterday instead   so a streak stays visible for the rest of the day
    * after it was earned.
    */
   streakDays: number;
@@ -106,7 +106,7 @@ export function buildWeeklyActivity(rides: readonly ActivityRide[], nowMs: numbe
   const now = new Date(nowMs);
 
   // Streak counts back from today, or from yesterday when today has no ride yet, over the
-  // full set of ride days — the run only stops at a calendar day with no qualifying ride.
+  // full set of ride days   the run only stops at a calendar day with no qualifying ride.
   let streakAnchor = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   if (!byDay.has(localDayKey(streakAnchor.getTime()))) {
     streakAnchor = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);

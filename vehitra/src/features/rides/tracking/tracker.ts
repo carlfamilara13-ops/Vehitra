@@ -10,6 +10,9 @@ import type { Db } from '../../../data/local/types';
 import { createQueue } from '../../../lib/queue';
 import { evaluatePermissions } from './permissionPolicy';
 import { readLocationPermissions } from './permissions';
+import { stopMovementMonitor, syncMovementMonitor } from '../../reminders/movementMonitor';
+import { deleteStationaryRideReminderState } from '../../../data/local/rideReminderStore';
+import { refreshLocalReminders } from '../../reminders/refresh';
 import {
   restartTracking as restartTrackingCore, resumeAfterLaunch, superviseRecovery,
   type LocationRuntime, type ResumeDeps, type ResumeStore,
@@ -55,12 +58,14 @@ export function startRide(userVehicleId: string | null = null, vehicleName: stri
       ...perm, notifications: true, foregroundCanAskAgain: true, backgroundCanAskAgain: true,
     });
     if (!verdict.canStart) throw new StartBlockedError(verdict.message);
+    await stopMovementMonitor();
     const id = Crypto.randomUUID();
     await createRide(db, id, Date.now(), userVehicleId, vehicleName); // throws RideAlreadyActiveError on a double start
     try {
       await Location.startLocationUpdatesAsync(TASK_NAME, locationOptions());
     } catch (e) {
       await abortRide(db, id, String(e));
+      void syncMovementMonitor();
       throw e;
     }
     return id;
@@ -81,7 +86,11 @@ export function stopRide(status: 'finished' | 'recovered' = 'finished'): Promise
       await logEvent(db, 'stop_failed', String(e));
     }
     if (!id) return null;
-    return finishRide(db, id, status);
+    const finished = await finishRide(db, id, status);
+    await deleteStationaryRideReminderState(db, id);
+    void refreshLocalReminders().catch(() => undefined);
+    void syncMovementMonitor();
+    return finished;
   });
 }
 
@@ -143,3 +152,6 @@ export function resumeIfInterrupted() {
   }
   return resumeOnce;
 }
+
+
+

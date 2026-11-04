@@ -1,5 +1,5 @@
 // Cloud shapes for the two user tables Vehitra syncs in v1: `user_vehicles` and `deadlines`.
-// user_id is never sent — the cloud derives it from auth.uid(). All timestamps are ISO strings
+// user_id is never sent   the cloud derives it from auth.uid(). All timestamps are ISO strings
 // (timestamptz); local stores use ms epoch, so every conversion happens in the mappers.
 
 export type CloudVehicleRow = {
@@ -48,6 +48,18 @@ export type CloudDeadlineInsert = {
   deleted_at: string | null;
 };
 
+export type SyncResolution = 'local' | 'account';
+export type SyncResolutions = {
+  vehicles?: Record<string, SyncResolution>;
+  deadlines?: Record<string, SyncResolution>;
+};
+
+export type SyncConflict = {
+  table: 'vehicles' | 'deadlines';
+  id: string;
+  fields: string[];
+};
+
 // Catalog model as the push/pull mapping needs it: cloud id + the local-compatible fields
 // (vehicle type code and display names) the local `vehicles` columns require on pull-create.
 export type CatalogModelInfo = {
@@ -59,7 +71,7 @@ export type CatalogModelInfo = {
 };
 
 // The narrow slice of Supabase the sync engine uses. Keeping it an interface (instead of
-// `getSupabase()` everywhere) makes the engine unit-testable with a fake remote — no network
+// `getSupabase()` everywhere) makes the engine unit-testable with a fake remote   no network
 // in tests.
 export interface SyncRemote {
   // Null when signed out; the engine refuses to sync without a session.
@@ -76,10 +88,11 @@ export type SyncSkip = { table: 'vehicles' | 'deadlines'; id: string; reason: st
 
 export type SyncReport = {
   ok: boolean;
-  reason: 'not_configured' | 'signed_out' | 'remote_error' | null;
+  reason: 'not_configured' | 'signed_out' | 'remote_error' | 'review_required' | null;
   vehicles: { pushed: number; pulled: number };
   deadlines: { pushed: number; pulled: number };
   skipped: SyncSkip[];
+  conflicts: SyncConflict[];
   errors: string[];
   ranAt: number;
 };
@@ -91,6 +104,7 @@ export function emptyReport(now: number): SyncReport {
     vehicles: { pushed: 0, pulled: 0 },
     deadlines: { pushed: 0, pulled: 0 },
     skipped: [],
+    conflicts: [],
     errors: [],
     ranAt: now,
   };

@@ -105,15 +105,15 @@ export function formatNumber(value: number): string {
 }
 
 export function formatDate(value: string | null | undefined): string {
-  if (!value) return '—';
+  if (!value) return ' ';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '—' : dateFormatter.format(date);
+  return Number.isNaN(date.getTime()) ? ' ' : dateFormatter.format(date);
 }
 
 export function formatDateTime(value: string | null | undefined): string {
-  if (!value) return '—';
+  if (!value) return ' ';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? '—' : dateTimeFormatter.format(date);
+  return Number.isNaN(date.getTime()) ? ' ' : dateTimeFormatter.format(date);
 }
 
 export function relativeTime(value: string | null | undefined): string {

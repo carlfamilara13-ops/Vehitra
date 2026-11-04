@@ -20,25 +20,25 @@ import {
   localDeadlineToCloud,
   localVehicleToCloud,
 } from './mappers';
-import { emptyReport, type SyncRemote, type SyncReport } from './types';
+import { emptyReport, type SyncRemote, type SyncReport, type SyncResolutions } from './types';
+import { findSyncConflicts } from './syncReview';
 
 // The sync apply step (v1 scope: vehicles + deadlines; local-first, manual trigger).
 //
-// Order: PULL then PUSH, because the spec in docs/ARCHITECTURE_NOTES.md §8 is last-write-wins
-// on client_updated_at — applying server state first lets a locally-newer row survive the pull
-// and then push, while a server-newer row overwrites the device exactly once.
+// Order: PULL then PUSH after an explicit review of divergent shared IDs. The selected side
+// wins per record; unrelated IDs are preserved as separate records.
 //
 // - Every remote call is guarded: network failures leave all local rows untouched and pending,
 //   so the next run retries from the same place (no partial state to repair).
 // - Rows we cannot honestly represent are reported in `skipped` with a reason, never dropped
 //   silently and never guessed at.
 // - Raw SELECTs are safe reads; every write goes through the stores or the sync marks module
-//   (both queued on the shared serialize FIFO — no nested queue entry anywhere below).
+//   (both queued on the shared serialize FIFO   no nested queue entry anywhere below).
 
 export async function runSync(
   db: Db,
   remote: SyncRemote,
-  opts: { now?: number } = {},
+  opts: { now?: number; resolutions?: SyncResolutions } = {},
 ): Promise<SyncReport> {
   const now = opts.now ?? Date.now();
   const report = emptyReport(now);
@@ -81,7 +81,39 @@ export async function runSync(
     return report;
   }
 
+  // Fetch every user-owned table before writing anything. A direct caller that has not
+  // reviewed divergent shared IDs is stopped here, before a pull can overwrite local values.
+  let cloudDeadlines: Awaited<ReturnType<SyncRemote['listUserDeadlines']>> = [];
+  try {
+    cloudDeadlines = await remote.listUserDeadlines();
+  } catch (e) {
+    report.ok = false;
+    report.reason = 'remote_error';
+    report.errors.push(e instanceof Error ? e.message : String(e));
+    return report;
+  }
+
   const localVehicles = await listVehiclesIncludingDeleted(db);
+  const localDeadlines = await listAllDeadlines(db);
+  const protectedVehicleIds = new Set(
+    cloudVehicles.filter((row) => !modelById.has(row.model_id)).map((row) => row.id),
+  );
+  const protectedDeadlineIds = new Set(
+    cloudDeadlines.filter((row) => cloudDeadlineToLocal(row) === null).map((row) => row.id),
+  );
+  const conflicts = findSyncConflicts(localVehicles, cloudVehicles, models, localDeadlines, cloudDeadlines);
+  report.conflicts = conflicts.filter((conflict) => {
+    const choice = conflict.table === 'vehicles'
+      ? opts.resolutions?.vehicles?.[conflict.id]
+      : opts.resolutions?.deadlines?.[conflict.id];
+    return choice !== 'local' && choice !== 'account';
+  });
+  if (report.conflicts.length > 0) {
+    report.ok = false;
+    report.reason = 'review_required';
+    return report;
+  }
+
   const localVehicleById = new Map(localVehicles.map((v) => [v.id, v]));
 
   for (const row of cloudVehicles) {
@@ -96,6 +128,8 @@ export async function runSync(
       continue;
     }
     const local = localVehicleById.get(row.id);
+    const resolution = opts.resolutions?.vehicles?.[row.id];
+    if (local && resolution === 'local') continue;
 
     if (!local) {
       if (pull.deletedAtMs != null) {
@@ -124,7 +158,7 @@ export async function runSync(
       continue;
     }
 
-    if (!cloudIsNewer(row.updated_at, local.client_updated_at)) continue;
+    if (resolution !== 'account' && !cloudIsNewer(row.updated_at, local.client_updated_at)) continue;
 
     let changed = false;
 
@@ -175,18 +209,7 @@ export async function runSync(
   }
 
   // ---------------------------------------------------------------- PULL deadlines
-  let cloudDeadlines: Awaited<ReturnType<SyncRemote['listUserDeadlines']>> = [];
-  try {
-    cloudDeadlines = await remote.listUserDeadlines();
-  } catch (e) {
-    report.ok = false;
-    report.reason = 'remote_error';
-    report.errors.push(e instanceof Error ? e.message : String(e));
-    return report;
-  }
-
-  const allDeadlines = await listAllDeadlines(db);
-  const localDeadlineById = new Map(allDeadlines.map((d) => [d.id, d]));
+  const localDeadlineById = new Map(localDeadlines.map((d) => [d.id, d]));
 
   for (const row of cloudDeadlines) {
     const pull = cloudDeadlineToLocal(row);
@@ -195,6 +218,8 @@ export async function runSync(
       continue;
     }
     const local = localDeadlineById.get(row.id);
+    const resolution = opts.resolutions?.deadlines?.[row.id];
+    if (local && resolution === 'local') continue;
 
     if (!local) {
       if (pull.deletedAtMs != null) {
@@ -223,7 +248,7 @@ export async function runSync(
       continue;
     }
 
-    if (!cloudIsNewer(row.updated_at, local.client_updated_at)) continue;
+    if (resolution !== 'account' && !cloudIsNewer(row.updated_at, local.client_updated_at)) continue;
 
     if (pull.deletedAtMs != null) {
       if (local.deleted_at == null) {
@@ -280,12 +305,15 @@ export async function runSync(
   }
 
   // ---------------------------------------------------------------- PUSH vehicles
-  const pendingVehicles = await db.getAllAsync<VehicleRow>(
-    "SELECT * FROM vehicles WHERE sync_status = 'pending'",
-  );
+  const pendingVehicles = (await db.getAllAsync<VehicleRow>('SELECT * FROM vehicles'))
+    .filter((vehicle) => vehicle.sync_status === 'pending' || opts.resolutions?.vehicles?.[vehicle.id] === 'local');
   const vehicleInserts = [];
   const vehiclePushIds: string[] = [];
   for (const v of pendingVehicles) {
+    if (protectedVehicleIds.has(v.id)) {
+      report.skipped.push({ table: 'vehicles', id: v.id, reason: 'account record uses a catalog model unavailable on this device' });
+      continue;
+    }
     if (!v.catalog_model_slug) {
       report.skipped.push({ table: 'vehicles', id: v.id, reason: 'no catalog link' });
       continue;
@@ -323,10 +351,16 @@ export async function runSync(
   for (const id of vehiclePushIds) cloudVehicleIds.add(id);
 
   const allAfterPull = await listAllDeadlines(db);
-  const pendingDeadlines = allAfterPull.filter((d) => d.sync_status === 'pending');
+  const pendingDeadlines = allAfterPull.filter(
+    (deadline) => deadline.sync_status === 'pending' || opts.resolutions?.deadlines?.[deadline.id] === 'local',
+  );
   const deadlineInserts = [];
   const deadlinePushIds: string[] = [];
   for (const d of pendingDeadlines) {
+    if (protectedDeadlineIds.has(d.id)) {
+      report.skipped.push({ table: 'deadlines', id: d.id, reason: 'account reminder values cannot be represented locally' });
+      continue;
+    }
     if (d.user_vehicle_id && !cloudVehicleIds.has(d.user_vehicle_id)) {
       report.skipped.push({ table: 'deadlines', id: d.id, reason: 'vehicle not in cloud' });
       continue;

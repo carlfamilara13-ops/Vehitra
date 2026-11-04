@@ -97,7 +97,10 @@ export function runSuite(target) {
       assert.deepEqual(off, [], 'tables without RLS');
       const anonGrants = (await c.sup(`select count(*)::int as n from information_schema.role_table_grants
         where grantee = 'anon' and table_schema = 'public'`)).rows[0].n;
-      assert.equal(anonGrants, 0);
+      assert.equal(anonGrants, 7, 'anon may read only the public catalog tables');
+      const publicGrants = (await c.sup(`select table_name from information_schema.role_table_grants
+        where grantee = 'anon' and table_schema = 'public' order by table_name`)).rows.map((r) => r.table_name);
+      assert.deepEqual(publicGrants, ['assets', 'brands', 'component_definitions', 'model_components', 'model_versions', 'vehicle_models', 'vehicle_types']);
       const deletes = (await c.sup(`select table_name from information_schema.role_table_grants
         where grantee = 'authenticated' and table_schema = 'public' and privilege_type = 'DELETE'
         order by table_name`)).rows.map((r) => r.table_name);
@@ -106,9 +109,12 @@ export function runSuite(target) {
       assert.equal(points, null, 'raw GPS points must not exist in the cloud schema');
     });
 
-    scenario('anonymous users cannot read tables or call functions', async (c) => {
-      for (const t of ALL_TABLES) await c.fails('anon', null, `select * from public.${t} limit 1`, [], PERM);
+    scenario('anonymous users can read only the public catalog and cannot call admin or account functions', async (c) => {
+      for (const t of USER_TABLES.concat(['admin_members', 'audit_events'])) await c.fails('anon', null, `select * from public.${t} limit 1`, [], PERM);
+      assert.ok((await c.anon('select count(*)::int as n from public.vehicle_types')).rows[0].n >= 7);
+      assert.ok((await c.anon('select count(*)::int as n from public.vehicle_models')).rows[0].n >= 21);
       await c.fails('anon', null, `select public.catalog_begin_version($1)`, [randomUUID()], PERM);
+      await c.fails('anon', null, `select public.admin_set_model_image($1,null,null,null)`, [randomUUID()], PERM);
       await c.fails('anon', null,
         `select public.replace_part_install(null,$1,$2,$3,'a','b',now(),1)`, [randomUUID(), randomUUID(), randomUUID()], PERM);
     });

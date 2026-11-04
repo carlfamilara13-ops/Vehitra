@@ -33,7 +33,7 @@ import Placeholder from '../../ui/Placeholder';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 
 // Mirrors the store's VEHICLE_BOUND_KINDS rule (registration/insurance/inspection must have a
-// vehicle; the store + DB trigger enforce it — this only decides when to show the picker).
+// vehicle; the store + DB trigger enforce it   this only decides when to show the picker).
 const VEHICLE_BOUND_KINDS: readonly DeadlineKind[] = ['registration', 'insurance', 'inspection'];
 
 type FormState = {
@@ -272,7 +272,7 @@ export default function DeadlinesScreen() {
         </View>
         {!adapter.available ? (
           <Text style={s.muted}>
-            Notifications are unavailable in this build — a native rebuild with expo-notifications
+            Notifications are unavailable in this build   a native rebuild with expo-notifications
             is required. Notices still show here in the app.
           </Text>
         ) : syncInfo?.permissionDenied ? (
@@ -283,11 +283,11 @@ export default function DeadlinesScreen() {
         ) : syncInfo ? (
           <Text style={s.muted}>
             {notifEnabled
-              ? `${syncInfo.plans} notice${syncInfo.plans === 1 ? '' : 's'} scheduled · ${syncInfo.unchanged} unchanged. Delivery time is approximate — the OS may batch notifications.`
+              ? `${syncInfo.plans} notice${syncInfo.plans === 1 ? '' : 's'} scheduled · ${syncInfo.unchanged} unchanged. Delivery time is approximate   the OS may batch notifications.`
               : 'Reminders are recorded here but not pushed while notifications are off.'}
           </Text>
         ) : (
-          <Text style={s.muted}>Local notifications only — nothing leaves this device.</Text>
+          <Text style={s.muted}>Local notifications only   nothing leaves this device.</Text>
         )}
         <TouchableOpacity
           style={s.btnGhost}
@@ -517,7 +517,7 @@ const s = StyleSheet.create({
   },
   chipSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
   chipTxt: { ...typography.caption, color: colors.textMuted },
-  chipTxtSelected: { color: colors.onPrimary, fontWeight: '700' },
+  chipTxtSelected: { color: colors.primaryInk, fontWeight: '700' },
   input: {
     backgroundColor: colors.surfaceRaised,
     borderColor: colors.border,
@@ -538,7 +538,7 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm + 2,
     paddingHorizontal: spacing.lg,
   },
-  btnPrimaryTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
+  btnPrimaryTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   btnGhost: {
     alignSelf: 'flex-start',
     borderColor: colors.primaryBright,

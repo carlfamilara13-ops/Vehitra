@@ -14,7 +14,7 @@ import type {
   CloudVehicleRow,
 } from './types';
 
-// Pure local<->cloud conversions. No I/O, no stores, no client — everything here is unit
+// Pure local<->cloud conversions. No I/O, no stores, no client   everything here is unit
 // tested. Rules:
 // - epoch ms <-> ISO strings convert here and nowhere else;
 // - a push payload carries ONLY columns the cloud table has (vehicle_type, brand, model,
@@ -82,7 +82,7 @@ export type VehiclePull = {
 
 // Maps a cloud vehicle row onto the local row's shared fields. Returns null when the model is
 // unknown to the local catalog (vehicle_type would be unset) or the server timestamp is
-// unparseable — the caller skips with a reason instead of guessing.
+// unparseable   the caller skips with a reason instead of guessing.
 export function cloudVehicleToLocal(
   row: CloudVehicleRow,
   model: CatalogModelInfo | null,
@@ -115,7 +115,7 @@ export type DeadlinePull = {
 };
 
 // Maps a cloud deadline onto the local row's shared fields. `enabled` has no cloud counterpart
-// and is intentionally absent — the device keeps its own toggle. Null for values the local
+// and is intentionally absent   the device keeps its own toggle. Null for values the local
 // schema cannot honestly store (unknown kind, malformed date).
 export function cloudDeadlineToLocal(row: CloudDeadlineRow): DeadlinePull | null {
   if (!(DEADLINE_KINDS as readonly string[]).includes(row.kind)) return null;

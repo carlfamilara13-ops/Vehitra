@@ -41,12 +41,12 @@ describe('unit display formatting', () => {
   });
 
   it('handles non-finite input', () => {
-    assert.equal(formatDistanceM(Number.NaN, 'metric'), '—');
-    assert.equal(formatDistanceM(Number.POSITIVE_INFINITY, 'metric'), '—');
-    assert.equal(formatDistanceKm(Number.NaN, 'metric'), '—');
-    assert.equal(formatSpeedMs(null, 'metric'), '—');
-    assert.equal(formatSpeedMs(undefined, 'imperial'), '—');
-    assert.equal(formatSpeedMs(Number.NaN, 'metric'), '—');
+    assert.equal(formatDistanceM(Number.NaN, 'metric'), ' ');
+    assert.equal(formatDistanceM(Number.POSITIVE_INFINITY, 'metric'), ' ');
+    assert.equal(formatDistanceKm(Number.NaN, 'metric'), ' ');
+    assert.equal(formatSpeedMs(null, 'metric'), ' ');
+    assert.equal(formatSpeedMs(undefined, 'imperial'), ' ');
+    assert.equal(formatSpeedMs(Number.NaN, 'metric'), ' ');
   });
 
   it('formats kilometre inputs (odometers/intervals) through the same path', () => {

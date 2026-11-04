@@ -1,33 +1,27 @@
 import { Platform } from 'react-native';
 
-// Platform boundary for local reminder notifications.
-//
-// expo-notifications is required lazily inside try/catch so the JS bundle keeps working where
-// the native module is missing or stale (tests, web, a dev client built before the module was
-// added). When unavailable, scheduling becomes a no-op and `available` lets the UI say so —
-// the reminder_schedule ledger is always the source of truth either way.
-//
-// Honesty rules:
-// - notifications are local-only; nothing leaves the device;
-// - exact delivery time is not guaranteed (OS doze/batching) — that is the OS contract, not a bug;
-// - a native rebuild is required after adding expo-notifications before any of this fires.
-
 const REMINDER_CHANNEL_ID = 'vehitra-reminders';
+export const STATIONARY_RIDE_CATEGORY = 'vehitra-stationary-ride';
+export const STATIONARY_RIDE_ACTIONS = {
+  remindLater: 'stationary-remind-later',
+  stopForRide: 'stationary-stop-for-ride',
+} as const;
 
 export type ReminderNotification = {
   title: string;
   body: string;
-  fireAt: number; // ms epoch
+  fireAt: number;
+  immediate?: boolean;
+  categoryIdentifier?: string;
+  data?: Record<string, string>;
 };
 
 export type NotificationsAdapter = {
-  // False when the native module could not be loaded in this build.
   available: boolean;
-  // Returns false when the user (or OS) denied notification permission.
-  ensurePermissions(): Promise<boolean>;
-  // Schedules one notification; resolves to the platform id (or null when unavailable).
+  ensurePermissions(requestIfNeeded?: boolean): Promise<boolean>;
   schedule(n: ReminderNotification): Promise<string | null>;
   cancel(platformId: string): Promise<void>;
+  dismiss?(platformId: string): Promise<void>;
   cancelAll(): Promise<void>;
 };
 
@@ -45,10 +39,20 @@ function loadModule(): ExpoNotificationsModule | null {
 export function createNotificationsAdapter(): NotificationsAdapter {
   const mod = loadModule();
   const available = mod != null;
+  let categorySetup: Promise<void> | null = null;
+
+  const prepareCategories = async () => {
+    if (!mod) return;
+    if (!categorySetup) {
+      categorySetup = mod.setNotificationCategoryAsync(STATIONARY_RIDE_CATEGORY, [
+        { identifier: STATIONARY_RIDE_ACTIONS.remindLater, buttonTitle: 'Remind me later' },
+        { identifier: STATIONARY_RIDE_ACTIONS.stopForRide, buttonTitle: 'Stop reminding for this ride' },
+      ]).then(() => undefined).catch(() => undefined);
+    }
+    await categorySetup;
+  };
 
   if (mod) {
-    // Foreground presentation: show the banner/list instead of silently dropping the
-    // notification while the app is open. Unknown module shape -> leave the default alone.
     try {
       mod.setNotificationHandler({
         handleNotification: async () => ({
@@ -59,30 +63,34 @@ export function createNotificationsAdapter(): NotificationsAdapter {
         }),
       });
     } catch {
-      // Handler shape mismatch on an older module — notifications still work in background.
+      // Notifications still work in the background if foreground handler setup is unavailable.
     }
   }
 
   return {
     available,
 
-    async ensurePermissions() {
+    async ensurePermissions(requestIfNeeded = true) {
       if (!mod) return false;
       try {
         if (Platform.OS === 'android') {
           await mod.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
             name: 'Vehitra reminders',
-            description: 'Maintenance, document expiry, and battery inactivity reminders.',
+            description: 'Maintenance, document expiry, and ride reminders.',
             importance: mod.AndroidImportance.DEFAULT,
-            sound: 'default',
             enableVibrate: true,
             vibrationPattern: [0, 250, 250, 250],
           });
         }
         const current = await mod.getPermissionsAsync();
-        if (current.granted || current.status === 'granted') return true;
-        const asked = await mod.requestPermissionsAsync();
-        return asked.granted || asked.status === 'granted';
+        const granted = current.granted || current.status === 'granted';
+        if (!granted) {
+          if (!requestIfNeeded) return false;
+          const asked = await mod.requestPermissionsAsync();
+          if (!(asked.granted || asked.status === 'granted')) return false;
+        }
+        await prepareCategories();
+        return true;
       } catch {
         return false;
       }
@@ -91,9 +99,15 @@ export function createNotificationsAdapter(): NotificationsAdapter {
     async schedule(n) {
       if (!mod) return null;
       try {
+        if (n.categoryIdentifier === STATIONARY_RIDE_CATEGORY) await prepareCategories();
         return await mod.scheduleNotificationAsync({
-          content: { title: n.title, body: n.body },
-          trigger: {
+          content: {
+            title: n.title,
+            body: n.body,
+            ...(n.categoryIdentifier ? { categoryIdentifier: n.categoryIdentifier } : {}),
+            ...(n.data ? { data: n.data } : {}),
+          },
+          trigger: n.immediate ? null : {
             type: mod.SchedulableTriggerInputTypes.DATE,
             date: new Date(n.fireAt),
             ...(Platform.OS === 'android' ? { channelId: REMINDER_CHANNEL_ID } : {}),
@@ -109,7 +123,16 @@ export function createNotificationsAdapter(): NotificationsAdapter {
       try {
         await mod.cancelScheduledNotificationAsync(platformId);
       } catch {
-        // Already gone — cancelling twice is not an error worth surfacing.
+        // Already gone is a normal end state.
+      }
+    },
+
+    async dismiss(platformId) {
+      if (!mod) return;
+      try {
+        await mod.dismissNotificationAsync(platformId);
+      } catch {
+        // It may not have been delivered yet.
       }
     },
 
@@ -118,8 +141,19 @@ export function createNotificationsAdapter(): NotificationsAdapter {
       try {
         await mod.cancelAllScheduledNotificationsAsync();
       } catch {
-        // Same as above: nothing scheduled is a fine end state.
+        // Nothing scheduled is a fine end state.
       }
     },
   };
 }
+
+export async function prepareNotificationCategories(): Promise<void> {
+  const adapter = createNotificationsAdapter();
+  if (adapter.available) {
+    // Registration is idempotent. A harmless permission check creates the platform channel too.
+    await adapter.ensurePermissions(false);
+  }
+}
+
+
+

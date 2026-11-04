@@ -15,7 +15,7 @@ import type {
 //   (user_vehicles/deadlines policies default to auth.uid()).
 // - The catalog model list is fetched on every run: pushing resolves local model slugs to
 //   cloud uuids, pulling resolves cloud uuids back to local catalog fields.
-// - Lists are full pulls, not cursor pulls — per-user tables are small in v1 and the engine's
+// - Lists are full pulls, not cursor pulls   per-user tables are small in v1 and the engine's
 //   last-write-wins compare turns an already-applied row into a no-op, so re-pulling is cheap
 //   and idempotent.
 // - Any query error throws; the engine catches it, marks the run a remote error, and leaves

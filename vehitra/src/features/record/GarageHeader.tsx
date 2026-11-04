@@ -11,7 +11,7 @@ type Props = {
   onAddVehicle: () => void;
 };
 
-// "Add Vehicle" — the Record header's primary creation action, rendered into Screen's right
+// "Add Vehicle"   the Record header's primary creation action, rendered into Screen's right
 // slot beside the page title. It is a glass button like every other button in the app
 // (Touch control → GlassSurface material), so the header action and the card actions read
 // as the same material rather than a floating solid chip.

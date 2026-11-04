@@ -18,7 +18,7 @@ export function pageForOffset(offsetX: number, pageWidth: number, count: number)
 }
 
 // Index of the shared active vehicle inside the garage list; 0 when nothing is selected (or the
-// selected id is not in the list — e.g. it was deleted on another screen).
+// selected id is not in the list   e.g. it was deleted on another screen).
 export function selectedVehicleIndex(
   vehicles: readonly { id: string }[],
   activeId: string | null,
@@ -57,7 +57,7 @@ export function odometerDisplay(
   units: Units,
 ): { value: string; unit: string } {
   const unit = distanceUnit(units);
-  if (odometerKm == null || !Number.isFinite(odometerKm)) return { value: '—', unit };
+  if (odometerKm == null || !Number.isFinite(odometerKm)) return { value: ' ', unit };
   const full = formatDistanceKm(odometerKm, units);
   const sp = full.lastIndexOf(' ');
   if (sp < 0) return { value: full, unit };
@@ -83,7 +83,7 @@ export function maintenanceLine(
 }
 
 // The nearest visible reminder attached to one vehicle (licence/custom rows are user-level and
-// are deliberately excluded here — this card is about the selected machine).
+// are deliberately excluded here   this card is about the selected machine).
 export function nextReminderForVehicle(
   deadlines: readonly DeadlineRow[],
   vehicleId: string | null,
@@ -119,7 +119,7 @@ export function reminderSummaryLine(
 //   DUE      at least one component is overdue.
 //   SERVICE  no overdue component, but at least one is due soon.
 //   UNKNOWN  no overdue and no due-soon component, but at least one component's state could
-//            not be determined (no service history, no interval, an invalid rule) — or there
+//            not be determined (no service history, no interval, an invalid rule)   or there
 //            is no applicable component at all, so there is nothing to judge.
 //   GOOD     every applicable component is up to date.
 //

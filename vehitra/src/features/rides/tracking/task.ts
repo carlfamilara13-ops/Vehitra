@@ -6,6 +6,7 @@ import { TASK_NAME } from '../../../config/tracking';
 import { getDb } from '../../../data/local/db';
 import { applyBatch, logEvent } from '../../../data/local/ridesStore';
 import type { Fix } from '../../../domain/ride/types';
+import { processStationaryRideFixes } from '../../reminders/stationaryRide';
 
 export function toFix(l: Location.LocationObject): Fix {
   return {
@@ -28,7 +29,9 @@ TaskManager.defineTask(TASK_NAME, async ({ data, error }) => {
     }
     const locations = (data as { locations?: Location.LocationObject[] } | undefined)?.locations;
     if (!locations || locations.length === 0) return;
-    const result = await applyBatch(db, locations.map(toFix));
+    const fixes = locations.map(toFix);
+    const result = await applyBatch(db, fixes);
+    if (result !== null) await processStationaryRideFixes(db, fixes);
     if (result === null && (await Location.hasStartedLocationUpdatesAsync(TASK_NAME))) {
       // No ride is recording but fixes keep arriving: do not leave the foreground service running for nothing.
       await Location.stopLocationUpdatesAsync(TASK_NAME);
@@ -42,3 +45,5 @@ TaskManager.defineTask(TASK_NAME, async ({ data, error }) => {
     }
   }
 });
+
+

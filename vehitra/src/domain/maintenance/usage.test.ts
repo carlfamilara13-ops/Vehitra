@@ -80,7 +80,7 @@ describe('evaluateUsage: status boundaries match evaluateComponent', () => {
 });
 
 describe('evaluateUsage: unknown history without a baseline', () => {
-  it('an absent applied-km sum is unknown — never assumed good or overdue', () => {
+  it('an absent applied-km sum is unknown   never assumed good or overdue', () => {
     for (const usedKm of [null, undefined]) {
       const r = evaluateUsage(base({ usedKm }));
       assert.equal(r.status, 'unknown', String(usedKm));

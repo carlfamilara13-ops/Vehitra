@@ -1,0 +1,27 @@
+﻿
+vehitra\src\features\settings\AccountScreen.tsx:41:  const [notice, setNotice] = useState<string | null>(null);
+vehitra\src\features\settings\AccountScreen.tsx:76:  const signIn = useCallback(async () => {
+vehitra\src\features\settings\AccountScreen.tsx:78:    setNotice(null);
+vehitra\src\features\settings\AccountScreen.tsx:90:      const { error } = await getSupabase().auth.signInWithPassword({ email: 
+addr, password });
+vehitra\src\features\settings\AccountScreen.tsx:104:  const createAccount = useCallback(async () => {
+vehitra\src\features\settings\AccountScreen.tsx:106:    setNotice(null);
+vehitra\src\features\settings\AccountScreen.tsx:125:        setNotice('Account created. Check your email to confirm your address, 
+then sign in.');
+vehitra\src\features\settings\AccountScreen.tsx:138:  const signOut = useCallback(async () => {
+vehitra\src\features\settings\AccountScreen.tsx:141:    setNotice(null);
+vehitra\src\features\settings\AccountScreen.tsx:144:      await getSupabase().auth.signOut();
+vehitra\src\features\settings\AccountScreen.tsx:149:        await getSupabase().auth.signOut({ scope: 'local' });
+vehitra\src\features\settings\AccountScreen.tsx:167:    setNotice(null);
+vehitra\src\features\settings\AccountScreen.tsx:197:    setNotice(null);
+vehitra\src\features\settings\AccountScreen.tsx:362:              setNotice('The saved local copy was restored. Restart Vehitra 
+before continuing.');
+vehitra\src\features\settings\AccountScreen.tsx:414:            <TouchableOpacity style={s.btnGhost} onPress={() => void signOut()} 
+disabled={busy} accessibilityRole="button">
+vehitra\src\features\settings\AccountScreen.tsx:472:          {!!notice && <Text style={s.notice}>{notice}</Text>}
+vehitra\src\features\settings\AccountScreen.tsx:476:            onPress={() => void signIn()}
+vehitra\src\features\settings\AccountScreen.tsx:484:            onPress={() => void createAccount()}
+vehitra\src\features\settings\AccountScreen.tsx:592:  notice: { ...typography.caption, color: colors.success, marginTop: spacing.sm 
+},
+
+

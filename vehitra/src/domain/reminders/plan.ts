@@ -1,12 +1,12 @@
 // Pure reminder planning. Turns stored deadlines, battery idle state and maintenance status
 // into a deterministic list of reminder instances with stable keys. Nothing here talks to
-// storage, React or the notification platform — the scheduler feeds it rows and applies the
+// storage, React or the notification platform   the scheduler feeds it rows and applies the
 // result, so every rule (thresholds, offsets, urgency, dedupe keys) is unit-testable.
 //
 // Honesty rules encoded here:
 // - a reminder only exists for data the user actually entered (no inferred deadlines);
 // - battery reminders are idle-time notices, never battery-health claims;
-// - maintenance reminders mirror the evaluator's due_soon/overdue statuses only — unknown
+// - maintenance reminders mirror the evaluator's due_soon/overdue statuses only   unknown
 //   history never produces a "you're fine" reminder.
 
 import { batteryIdleLevel, IDLE_WATCH_DAYS, IDLE_WARN_DAYS } from '../battery/idle';
@@ -22,7 +22,7 @@ export type ReminderUrgency = 'overdue' | 'due_soon' | 'info';
 
 export type ReminderPlan = {
   key: string;
-  kind: 'deadline' | 'battery_idle' | 'maintenance';
+  kind: 'deadline' | 'battery_idle' | 'maintenance' | 'maintenance_time';
   subjectId: string; // deadline id, or "vehicleId:componentCode" / vehicle id
   vehicleId: string | null;
   title: string;
@@ -57,6 +57,15 @@ export type MaintenanceReminderInput = {
   status: 'due_soon' | 'overdue';
 };
 
+export type MaintenanceTimeReminderInput = {
+  vehicleId: string;
+  vehicleName: string;
+  componentCode: string;
+  componentName: string;
+  baselineAt: number;
+  intervalDays: number;
+};
+
 const KIND_LABELS: Record<string, string> = {
   registration: 'Registration expiry',
   license: "Driver's licence expiry",
@@ -89,7 +98,7 @@ export function planDeadlineReminders(
     // the scheduler cancels stale keys when the due date changes.
     const fireDate = formatDateOnly(fireAtBase);
     const kindLabel = KIND_LABELS[d.kind] ?? 'Reminder';
-    const subject = d.label ? `${kindLabel} — ${d.label}` : kindLabel;
+    const subject = d.label ? `${kindLabel}   ${d.label}` : kindLabel;
     const scope = d.vehicleName ? ` for ${d.vehicleName}` : '';
 
     plans.push({
@@ -135,7 +144,7 @@ export function planBatteryReminders(
       kind: 'battery_idle',
       subjectId: b.vehicleId,
       vehicleId: b.vehicleId,
-      title: level === 'warn' ? 'Battery idle over a week' : 'Battery idle — worth a check',
+      title: level === 'warn' ? 'Battery idle over a week' : 'Battery idle   worth a check',
       body:
         `No battery use recorded for ${b.vehicleName} in ${idleDays} days. ` +
         'If it has been used, record it to clear this. Vehitra cannot measure battery health.',
@@ -167,11 +176,50 @@ export function planMaintenanceReminders(
   }));
 }
 
+// A user-configured time interval is evaluated separately from distance maintenance. It only
+// produces notices when a valid replacement/baseline date exists; catalog and estimate intervals
+// are not treated as time rules. The warning window is 25% of the configured interval (at least
+// one calendar day), matching the default maintenance warning proportion.
+export function planMaintenanceTimeReminders(
+  items: readonly MaintenanceTimeReminderInput[],
+  nowMs: number,
+): ReminderPlan[] {
+  const plans: ReminderPlan[] = [];
+  for (const item of items) {
+    if (!Number.isFinite(item.baselineAt) || !Number.isInteger(item.intervalDays) || item.intervalDays <= 0) continue;
+    const due = new Date(item.baselineAt);
+    due.setHours(0, 0, 0, 0);
+    due.setDate(due.getDate() + item.intervalDays);
+    const dueAt = due.getTime();
+    const dueDate = formatDateOnly(dueAt);
+    const daysUntil = daysUntilDateOnly(dueDate, nowMs);
+    if (daysUntil == null) continue;
+    const warningDays = Math.max(1, Math.ceil(item.intervalDays * 0.25));
+    if (daysUntil > warningDays) continue;
+
+    const warningAt = new Date(dueAt);
+    warningAt.setDate(warningAt.getDate() - warningDays);
+    const overdue = daysUntil <= 0;
+    plans.push({
+      key: reminderKey('maintenance_time', `${item.vehicleId}:${item.componentCode}`, dueDate),
+      kind: 'maintenance_time',
+      subjectId: `${item.vehicleId}:${item.componentCode}`,
+      vehicleId: item.vehicleId,
+      title: overdue ? `${item.componentName} time service is overdue` : `${item.componentName} time service is coming up`,
+      body: `${item.componentName} on ${item.vehicleName} is based on your ${item.intervalDays}-day interval; due ${dueDate}.`,
+      fireAt: Math.max(warningAt.getTime(), nowMs),
+      urgency: overdue ? 'overdue' : 'due_soon',
+    });
+  }
+  return plans;
+}
+
 // All plans, sorted by urgency then fire time then key (deterministic order).
 export function planReminders(input: {
   deadlines: readonly DeadlineReminderInput[];
   batteries: readonly BatteryReminderInput[];
   maintenance: readonly MaintenanceReminderInput[];
+  maintenanceTime?: readonly MaintenanceTimeReminderInput[];
   nowMs: number;
 }): ReminderPlan[] {
   const urgencyRank: Record<ReminderUrgency, number> = { overdue: 0, due_soon: 1, info: 2 };
@@ -179,6 +227,7 @@ export function planReminders(input: {
     ...planDeadlineReminders(input.deadlines, input.nowMs),
     ...planBatteryReminders(input.batteries, input.nowMs),
     ...planMaintenanceReminders(input.maintenance, input.nowMs),
+    ...planMaintenanceTimeReminders(input.maintenanceTime ?? [], input.nowMs),
   ].sort(
     (a, b) =>
       urgencyRank[a.urgency] - urgencyRank[b.urgency] ||

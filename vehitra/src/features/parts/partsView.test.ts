@@ -7,6 +7,7 @@ import {
   matchesQuery,
   parseDateInput,
   parseIntervalKm,
+  parseIntervalDays,
   parseOdometerKm,
   parseOptionalOdometerKm,
   progressFraction,
@@ -117,7 +118,7 @@ describe('partsView: labels', () => {
     assert.match(intervalSourceNote('estimate') ?? '', /not a manufacturer recommendation/i);
     assert.match(intervalSourceNote('override') ?? '', /user configured/i);
     assert.match(intervalSourceNote('override') ?? '', /not a manufacturer recommendation/i);
-    // catalog intervals are wired now — and labelled as draft pack data, never manufacturer data
+    // catalog intervals are wired now   and labelled as draft pack data, never manufacturer data
     assert.match(intervalSourceNote('catalog') ?? '', /draft data, not a manufacturer recommendation/i);
     assert.match(intervalSourceNote('catalog') ?? '', /resource pack/i);
     assert.match(intervalSourceNote('usage') ?? '', /recorded usage/i);
@@ -152,6 +153,14 @@ describe('partsView: form input parsing', () => {
     assert.ok(!parseIntervalKm('0').ok);
     assert.ok(!parseIntervalKm('-500').ok);
     assert.ok(!parseIntervalKm('lots').ok);
+  });
+
+  it('accepts an optional positive whole-day maintenance interval', () => {
+    assert.deepEqual(parseIntervalDays(''), { ok: true, value: null });
+    assert.deepEqual(parseIntervalDays('30'), { ok: true, value: 30 });
+    assert.ok(!parseIntervalDays('0').ok);
+    assert.ok(!parseIntervalDays('-2').ok);
+    assert.ok(!parseIntervalDays('1.5').ok);
   });
 
   it('parses YYYY-MM-DD dates and rejects impossible or future ones', () => {

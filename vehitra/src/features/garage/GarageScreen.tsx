@@ -77,6 +77,7 @@ export default function GarageScreen({ navigation }: Props) {
     <Screen
       title="Garage"
       subtitle="Your vehicles"
+      avoidTabBar
       right={
         <TouchableOpacity
           style={s.addBtn}

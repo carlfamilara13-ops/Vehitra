@@ -38,7 +38,7 @@ describe('offline route sketch projection', () => {
     const dx = c.x - a.x;
     const dy = a.y - c.y;
     // The input spans equal degrees of latitude and longitude, so with one shared ground scale
-    // the screen ratio dx/dy must equal cos(mid latitude) — the projection's lon correction.
+    // the screen ratio dx/dy must equal cos(mid latitude)   the projection's lon correction.
     const midLat = ((14.5995 + 14.6015) / 2) * (Math.PI / 180);
     const expectedRatio = Math.cos(midLat);
     assert.ok(

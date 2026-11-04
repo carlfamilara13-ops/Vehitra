@@ -3,6 +3,7 @@ import { ActivityIndicator, Alert, StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text, TextInput } from '../../ui/neu/NeuText';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import { useFocusEffect } from '@react-navigation/native';
 import * as Crypto from 'expo-crypto';
 import { getDb } from '../../data/local/db';
 import { odometerInputLabel } from '../../domain/units';
@@ -39,7 +40,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
   const editId = route.params?.id;
   const isEdit = !!editId;
   // Chosen through the vehicle library: preserved for the whole session even if the user backs
-  // out and returns — kept in state so a re-render never loses the linkage.
+  // out and returns   kept in state so a re-render never loses the linkage.
   const catalogSlug = route.params?.catalogModelSlug ?? null;
 
   const [loading, setLoading] = useState(!!editId);
@@ -53,7 +54,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
   const [errors, setErrors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const [loadDone, setLoadDone] = useState(!editId);
-  // Human description of the catalog link ("Click 125 — draft pack rules"), when one exists.
+  // Human description of the catalog link ("Click 125   draft pack rules"), when one exists.
   const [catalogNotice, setCatalogNotice] = useState<string | null>(null);
 
   useEffect(() => {
@@ -77,7 +78,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
         setOdometer(v.odometer_km != null ? String(v.odometer_km) : '');
         if (v.catalog_model_slug) {
           const cm = await getCatalogModel(db, v.catalog_model_slug);
-          if (alive && cm) setCatalogNotice(`${cm.name} (${cm.slug}) — rules from its resource pack`);
+          if (alive && cm) setCatalogNotice(`${cm.name} (${cm.slug})   rules from its resource pack`);
         }
       } catch (e) {
         if (alive) setErrors([e instanceof Error ? e.message : String(e)]);
@@ -99,7 +100,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
       try {
         const db = await getDb();
         const cm = await getCatalogModel(db, catalogSlug);
-        if (alive && cm) setCatalogNotice(`${cm.name} (${cm.slug}) — rules from its resource pack`);
+        if (alive && cm) setCatalogNotice(`${cm.name} (${cm.slug})   rules from its resource pack`);
       } catch {
         // notice is decorative; saving still validates the link
       }
@@ -108,6 +109,30 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
       alive = false;
     };
   }, [editId, catalogSlug]);
+
+  // This screen lives in a bottom-tab navigator, so it stays mounted after saving. Without a
+  // focus reset, the next "add vehicle" visit would reuse the previous visit's values and the
+  // stuck `saving` flag (button shows "Saving…" until the app reloads).
+  const presetType = route.params?.presetType;
+  const presetBrand = route.params?.presetBrand;
+  const presetModel = route.params?.presetModel;
+  useFocusEffect(
+    useCallback(() => {
+      setSaving(false);
+      setErrors([]);
+      if (editId) return;
+      setType(presetType ?? 'motorcycle');
+      setNickname('');
+      setBrand(presetBrand ?? '');
+      setModel(presetModel ?? '');
+      setYear('');
+      setPlate('');
+      setOdometer('');
+      // The notice for the current catalog slug is re-resolved by the effect above when the
+      // slug changes; only clear it when this visit is manual entry.
+      if (!catalogSlug) setCatalogNotice(null);
+    }, [editId, catalogSlug, presetType, presetBrand, presetModel]),
+  );
 
   const onSave = useCallback(async () => {
     const input = {
@@ -132,7 +157,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
         await updateVehicle(db, editId, input);
       } else {
         // Attach the library linkage only if the model still exists and matches the chosen
-        // type — the form stays usable without it (manual entry never requires a catalog model).
+        // type   the form stays usable without it (manual entry never requires a catalog model).
         let catalog: { catalog_model_slug: string; catalog_version: number } | null = null;
         if (catalogSlug) {
           const cm = await getCatalogModel(db, catalogSlug);
@@ -155,6 +180,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
         const all = await listVehicles(db);
         if (all.length === 1) await setActiveVehicle(db, id);
       }
+      setSaving(false);
       navigation.navigate('Garage');
     } catch (e) {
       setErrors([e instanceof Error ? e.message : String(e)]);
@@ -168,6 +194,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
     try {
       const db = await getDb();
       await softDeleteVehicle(db, editId);
+      setSaving(false);
       navigation.navigate('Garage');
     } catch (e) {
       setErrors([e instanceof Error ? e.message : String(e)]);
@@ -184,7 +211,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
 
   if (!loadDone) {
     return (
-      <Screen title="Edit vehicle" scroll={false} keyboardShouldPersistTaps="handled">
+      <Screen title="Edit vehicle" scroll={false} keyboardShouldPersistTaps="handled" avoidTabBar>
         <ActivityIndicator color={colors.primary} style={s.loading} />
       </Screen>
     );
@@ -193,11 +220,13 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
   return (
     <Screen
       title={editId ? 'Edit vehicle' : 'Add vehicle'}
-      subtitle="Stored on this device — works offline"
+      subtitle="Stored on this device   works offline"
       keyboardShouldPersistTaps="handled"
+      avoidTabBar
+      keyboardAware
     >
       <Text style={s.label}>Vehicle type</Text>
-      <View style={s.chips}>
+      <View style={[s.chips, { backgroundColor: 'transparent' }]}>
         {VEHICLE_TYPES.map((t) => {
           const selected = t === type;
           return (
@@ -246,7 +275,7 @@ export default function VehicleFormScreen({ route, navigation }: Props) {
         <View style={s.catalogBox}>
           <Text style={s.catalogTxt}>{catalogNotice}</Text>
           <Text style={s.catalogSub}>
-            Maintenance intervals come from this model&apos;s resource pack (draft catalog data — not
+            Maintenance intervals come from this model&apos;s resource pack (draft catalog data   not
             manufacturer recommendations) until you set your own.
           </Text>
         </View>
@@ -381,7 +410,7 @@ const s = StyleSheet.create({
     marginTop: spacing.xl,
   },
   btnDisabled: { opacity: 0.6 },
-  btnTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
+  btnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   btnGhost: {
     backgroundColor: colors.surface,
 

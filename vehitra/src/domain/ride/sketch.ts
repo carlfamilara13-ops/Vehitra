@@ -1,7 +1,7 @@
 // Pure projection of a recorded route into pixel coordinates for the offline route sketch.
 // No map tiles and no network: this only fits the recorded points into a fixed-size canvas
 // while preserving shape (same scale on both axes). Multi-segment routes are projected
-// together so segments stay aligned, and gaps between segments are not drawn — matching the
+// together so segments stay aligned, and gaps between segments are not drawn   matching the
 // storage rule that distance is never joined across untracked gaps.
 
 import type { LatLon } from './polyline';

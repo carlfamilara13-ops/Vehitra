@@ -20,6 +20,10 @@ import type {
 
 export { isSupabaseConfigured };
 
+export function publicModelImageUrl(storagePath: string): string {
+  return getSupabase().storage.from('vehitra-catalog-images').getPublicUrl(storagePath).data.publicUrl;
+}
+
 export class AccessError extends Error {
   reason: 'not_admin' | 'suspended';
 
@@ -125,7 +129,7 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceBundle> {
       client
         .from('vehicle_models')
         .select(
-          'id,slug,name,is_generic,year_from,year_to,active,sort_order,current_version,created_at,updated_at,brand:brands(id,slug,name),vehicle_type:vehicle_types(code,name)',
+          'id,slug,name,is_generic,year_from,year_to,active,sort_order,current_version,image_asset_id,image:assets(storage_path),created_at,updated_at,brand:brands(id,slug,name),vehicle_type:vehicle_types(code,name)',
         )
         .order('sort_order', { ascending: true })
         .order('name', { ascending: true }),
@@ -163,6 +167,7 @@ export async function loadWorkspace(userId: string): Promise<WorkspaceBundle> {
       active: row.active,
       sort_order: row.sort_order,
       current_version: row.current_version,
+      image_storage_path: firstRelation(row.image)?.storage_path ?? null,
       created_at: row.created_at,
       updated_at: row.updated_at,
     };
@@ -246,6 +251,35 @@ export interface SaveRuleInput {
 }
 
 export const adminApi = {
+  async uploadModelImage(modelId: string, file: File): Promise<void> {
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${modelId}/${crypto.randomUUID()}.${ext}`;
+    const client = getSupabase();
+    const { error: uploadError } = await client.storage.from('vehitra-catalog-images').upload(path, file, {
+      contentType: file.type,
+      cacheControl: '31536000',
+      upsert: false,
+    });
+    if (uploadError) throw new Error(uploadError.message);
+    const { data: previousPath, error } = await client.rpc('admin_set_model_image', {
+      p_model_id: modelId,
+      p_storage_path: path,
+      p_content_type: file.type,
+      p_bytes: file.size,
+    });
+    if (error) throw new Error(error.message);
+    if (previousPath) await client.storage.from('vehitra-catalog-images').remove([previousPath]);
+  },
+  async removeModelImage(modelId: string) {
+    const { data: previousPath, error } = await getSupabase().rpc('admin_set_model_image', {
+      p_model_id: modelId,
+      p_storage_path: null,
+      p_content_type: null,
+      p_bytes: null,
+    });
+    if (error) throw new Error(error.message);
+    if (previousPath) await getSupabase().storage.from('vehitra-catalog-images').remove([previousPath]);
+  },
   createBrand(slug: string, name: string) {
     return callRpc<string>('admin_create_brand', { p_slug: slug, p_name: name });
   },

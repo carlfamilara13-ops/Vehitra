@@ -3,6 +3,7 @@ import { serialize } from './serialize';
 import type { Db } from './types';
 import { getVehicle } from './vehicleStore';
 import { MaintenanceNotFoundError, MaintenanceValidationError } from './maintenanceErrors';
+import { getCustomPart } from './customPartStore';
 
 // Installed-part records (schema v5). Close-only: an open row (removed_at IS NULL) may be closed
 // once and is then frozen; rows are never deleted. At most one open install per (vehicle, component),
@@ -55,9 +56,9 @@ const text = (v: string | null | undefined): string | null => {
   return t.length ? t : null;
 };
 
-export function validatePartInstallInput(input: PartInstallInput): string[] {
+export function validatePartInstallInput(input: PartInstallInput, allowCustom = false): string[] {
   const errors: string[] = [];
-  if (!getComponentDefinition(input.component_code)) errors.push('Unknown component.');
+  if (!getComponentDefinition(input.component_code) && !allowCustom) errors.push('Unknown component.');
   if (!Number.isFinite(input.installed_at)) errors.push('Install time is required.');
   if (input.install_odo != null && (!Number.isFinite(input.install_odo) || input.install_odo < 0)) {
     errors.push('Odometer must be zero or greater.');
@@ -95,7 +96,7 @@ export function listInstalls(db: Db, userVehicleId: string, componentCode?: stri
   );
 }
 
-// Most recent install (open or closed) for a component — the usage baseline.
+// Most recent install (open or closed) for a component   the usage baseline.
 export function latestInstall(db: Db, userVehicleId: string, componentCode: string): Promise<PartInstallRow | null> {
   return db.getFirstAsync<PartInstallRow>(
     'SELECT * FROM part_installs WHERE user_vehicle_id = ? AND component_code = ? ORDER BY installed_at DESC, id DESC LIMIT 1',
@@ -105,7 +106,7 @@ export function latestInstall(db: Db, userVehicleId: string, componentCode: stri
 
 export function openInstall(db: Db, input: PartInstallInput, now = Date.now()): Promise<PartInstallRow> {
   return serialize(async () => {
-    const errors = validatePartInstallInput(input);
+    const errors = validatePartInstallInput(input, !!await getCustomPart(db, input.user_vehicle_id, input.component_code));
     if (errors.length) throw new MaintenanceValidationError(errors);
     const vehicle = await getVehicle(db, input.user_vehicle_id);
     if (!vehicle) throw new MaintenanceNotFoundError(input.user_vehicle_id);
@@ -153,7 +154,7 @@ export function closeInstall(db: Db, installId: string, close: CloseInstallInput
 // Replacement: close the current open install (if any) and open a new one, atomically.
 export function replaceInstall(db: Db, input: PartInstallInput, now = Date.now()): Promise<PartInstallRow> {
   return serialize(async () => {
-    const errors = validatePartInstallInput(input);
+    const errors = validatePartInstallInput(input, !!await getCustomPart(db, input.user_vehicle_id, input.component_code));
     if (errors.length) throw new MaintenanceValidationError(errors);
     // Reject a future install before closing the current one so a rejected write leaves nothing
     // behind. A future-dated install is the usage baseline and would hide present wear.

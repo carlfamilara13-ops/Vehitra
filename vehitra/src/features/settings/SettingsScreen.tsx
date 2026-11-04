@@ -1,6 +1,6 @@
 
 import React, { useCallback, useState } from 'react';
-import { Alert, Image, StyleSheet } from 'react-native';
+import { Alert, Image, Platform, StyleSheet } from 'react-native';
 import { NeuToggle, NeuSegmented } from '../../ui/neu/NeuControls';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text } from '../../ui/neu/NeuText';
@@ -28,6 +28,8 @@ import {
 import DriverProfileEditModal from '../dashboard/DriverProfileEditModal';
 import { createNotificationsAdapter } from '../reminders/notifications';
 import { syncReminders } from '../reminders/scheduler';
+import { syncMovementMonitor } from '../reminders/movementMonitor';
+import { ensurePermissions } from '../rides/tracking/permissions';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'Settings'>;
 
@@ -47,6 +49,7 @@ const NOTIFICATION_KEYS: ReadonlyArray<keyof AppSettingsPatch> = [
   'maintenance_overdue_enabled',
   'document_reminders_enabled',
   'battery_reminders_enabled',
+  'stationary_ride_reminders_enabled',
 ];
 
 export default function SettingsScreen({ navigation }: Props) {
@@ -88,6 +91,21 @@ export default function SettingsScreen({ navigation }: Props) {
     setError(null);
 
     try {
+      if (patch.movement_reminders_enabled === true) {
+        if (Platform.OS !== 'android') {
+          setError('Movement reminders currently require Android background location.');
+          return;
+        }
+        const location = await ensurePermissions();
+        if (!location.foreground || !location.background) {
+          setError('Allow foreground and background location to enable movement reminders.');
+          return;
+        }
+        if (!(await createNotificationsAdapter().ensurePermissions())) {
+          setError('Allow notifications to enable movement reminders.');
+          return;
+        }
+      }
       const db = await getDb();
       const saved = await updateAppSettings(db, patch);
 
@@ -95,11 +113,7 @@ export default function SettingsScreen({ navigation }: Props) {
       await prefs.reload();
 
       if (NOTIFICATION_KEYS.some((key) => key in patch)) {
-        const result = await syncReminders(
-          db,
-          createNotificationsAdapter(),
-        );
-
+        const result = await syncReminders(db, createNotificationsAdapter());
         if (!result.available && saved.notifications_enabled === 1) {
           setError(
             'Saved, but reminders are unavailable in this app build. Install the updated Vehitra app to enable them.',
@@ -108,6 +122,12 @@ export default function SettingsScreen({ navigation }: Props) {
           setError(
             'Saved, but Android notification permission is off. Allow notifications in Android settings to receive reminders.',
           );
+        }
+      }
+      if ('movement_reminders_enabled' in patch || 'notifications_enabled' in patch) {
+        const active = await syncMovementMonitor();
+        if (saved.movement_reminders_enabled === 1 && !active) {
+          setError('Movement reminders are saved but could not start. Check Android background location permission.');
         }
       }
     } catch (e) {
@@ -125,7 +145,7 @@ export default function SettingsScreen({ navigation }: Props) {
   const notificationsEnabled = settings?.notifications_enabled === 1;
 
   return (
-    <Screen title="Settings" subtitle="Your Vehitra preferences">
+    <Screen title="Settings" subtitle="Your Vehitra preferences" avoidTabBar>
       <View style={s.profileCard}>
         <View style={s.avatar}>
           {profile?.portrait_uri ? (
@@ -276,6 +296,26 @@ export default function SettingsScreen({ navigation }: Props) {
             disabled={saving || !notificationsEnabled}
             onValueChange={(value) =>
               void save({ battery_reminders_enabled: value })
+            }
+          />
+
+          <ToggleRow
+            label="Stationary ride reminder"
+            hint="Ask if you are taking a break after a long stop. Vehitra never ends your ride automatically."
+            value={settings?.stationary_ride_reminders_enabled === 1}
+            disabled={saving || !notificationsEnabled}
+            onValueChange={(value) =>
+              void save({ stationary_ride_reminders_enabled: value })
+            }
+          />
+
+          <ToggleRow
+            label="Movement reminder"
+            hint="Opt in to a lower-rate Android location monitor while no ride is active. Android shows an ongoing location notice."
+            value={settings?.movement_reminders_enabled === 1}
+            disabled={saving || !notificationsEnabled || Platform.OS !== 'android'}
+            onValueChange={(value) =>
+              void save({ movement_reminders_enabled: value })
             }
             last
           />

@@ -6,8 +6,13 @@
     "version": "0.1.0",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
+    "icon": "./assets/appLogo.png",
     "android": {
       "package": "com.vehitra.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/appLogo.png",
+        "backgroundColor": "#E8EDF4"
+      },
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION",

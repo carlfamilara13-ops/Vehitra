@@ -1,4 +1,4 @@
-// Local component catalogue — a CODE MIRROR of supabase/seed.sql `component_definitions`.
+// Local component catalogue   a CODE MIRROR of supabase/seed.sql `component_definitions`.
 //
 // Why here and not in the database: the cloud catalogue (component_definitions / model_components)
 // is not downloaded yet, and the maintenance records are stored locally against a component CODE so

@@ -18,6 +18,7 @@ const model = (over: Partial<CatalogIndexModel> = {}): CatalogIndexModel => ({
   name: 'Click 125',
   isGeneric: false,
   sortOrder: 100,
+  imageStoragePath: null,
   ...over,
 });
 

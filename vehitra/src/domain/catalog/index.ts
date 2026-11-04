@@ -10,6 +10,7 @@ export type CatalogIndexModel = {
   name: string;
   isGeneric: boolean;
   sortOrder: number;
+  imageStoragePath: string | null;
 };
 
 export function validateCatalogIndex(
@@ -33,6 +34,9 @@ export function validateCatalogIndex(
     const label = model.slug || 'A model';
     if (!model.slug.trim()) errors.push('A model is missing its slug.');
     if (!model.name.trim()) errors.push(`${label}: name is required.`);
+    if (model.imageStoragePath != null && (!model.imageStoragePath.trim() || model.imageStoragePath.startsWith('/'))) {
+      errors.push(`${label}: image path is invalid.`);
+    }
     if (!model.vehicleType.trim()) errors.push(`${label}: vehicle type is required.`);
     if (!Number.isInteger(model.sortOrder) || model.sortOrder < 0) {
       errors.push(`${label}: sort order must be a non-negative whole number.`);

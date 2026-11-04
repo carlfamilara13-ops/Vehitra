@@ -285,7 +285,7 @@ const s = StyleSheet.create({
   },
   filterBtnActive: { backgroundColor: colors.primary, borderColor: colors.primary },
   filterText: { ...typography.label, color: colors.textMuted },
-  filterTextActive: { color: colors.onPrimary },
+  filterTextActive: { color: colors.primaryInk },
   chips: {
     backgroundColor: colors.surface, flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   chip: {

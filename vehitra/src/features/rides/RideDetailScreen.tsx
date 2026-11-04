@@ -1,70 +1,77 @@
+
 import React, { useCallback, useMemo, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet } from 'react-native';
+import {
+  Modal,
+  Pressable,
+  StyleSheet,
+  View as RNView,
+} from 'react-native';
 import { View } from '../../ui/neu/NeuAuto';
 import { Text } from '../../ui/neu/NeuText';
 import { useFocusEffect } from '@react-navigation/native';
 import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
-import Svg, { Circle, Path, Line, Text as SvgText } from 'react-native-svg';
 import { getDb } from '../../data/local/db';
 import { getRide, type RideRow } from '../../data/local/ridesStore';
 import { getAppSettings, type UnitsPref } from '../../data/local/settingsStore';
 import { decodePolyline, type LatLon } from '../../domain/ride/polyline';
-import { projectRoute, type SketchedPoint } from '../../domain/ride/sketch';
-import type { Route } from '../../domain/ride/route';
 import { formatDistanceM, formatSpeedMs, speedUnit, KM_PER_MILE } from '../../domain/units';
+import type { Route } from '../../domain/ride/route';
 import Screen from '../../ui/Screen';
 import Placeholder from '../../ui/Placeholder';
+import RideMapPreview from './RideMapPreview';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import type { RootTabParamList } from '../../app/RootNavigator';
+import Svg, { Circle, Path, Line, Text as SvgText } from 'react-native-svg';
 
 type Props = BottomTabScreenProps<RootTabParamList, 'RideDetail'>;
 
-const SKETCH_HEIGHT = 220;
-
 function duration(s: number | null): string {
-  if (s == null) return '—';
+  if (s == null) return ' ';
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = Math.round(s % 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m ${sec}s`;
 }
 
-// Reads a persisted ride's route: `route_segments` holds the JSON Route built at finalize time
-// (one encoded polyline per segment, split at GPS gaps). Falls back to nothing when absent —
-// a recording ride has no segments yet.
+// Reads the persisted route: one encoded polyline per GPS segment.
 function segmentsOf(ride: RideRow): LatLon[][] {
   if (!ride.route_segments) return [];
+
   try {
     const route = JSON.parse(ride.route_segments) as Route;
     if (!route || !Array.isArray(route.segments)) return [];
+
     return route.segments
-      .map((seg) => decodePolyline(seg.polyline))
-      .filter((pts) => pts.length > 1);
+      .map((segment) => decodePolyline(segment.polyline))
+      .filter((points) => points.length > 1);
   } catch {
     return [];
   }
 }
 
-// Ride detail: stats, an offline route sketch (no tiles) and a speed dial. Everything comes
-// from the persisted ride row — nothing here recomputes history.
 export default function RideDetailScreen({ navigation, route }: Props) {
   const rideId = route.params?.id;
+
   const [ride, setRide] = useState<RideRow | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [units, setUnits] = useState<UnitsPref>('metric');
-  const [canvasWidth, setCanvasWidth] = useState(0);
+  const [mapVisible, setMapVisible] = useState(false);
 
   useFocusEffect(
     useCallback(() => {
       let cancelled = false;
+
       (async () => {
         try {
           const db = await getDb();
+
           const [row, settings] = await Promise.all([
             rideId ? getRide(db, rideId) : Promise.resolve(null),
             getAppSettings(db),
           ]);
+
           if (cancelled) return;
+
           setRide(row);
           setUnits(settings.units);
         } catch {
@@ -73,22 +80,17 @@ export default function RideDetailScreen({ navigation, route }: Props) {
           if (!cancelled) setLoaded(true);
         }
       })();
+
       return () => {
         cancelled = true;
       };
     }, [rideId]),
   );
 
-  const sketch = useMemo(() => {
-    if (!ride || canvasWidth <= 0) return null;
-    const segments = segmentsOf(ride);
-    if (segments.length === 0) return null;
-    return projectRoute(segments, { width: canvasWidth, height: SKETCH_HEIGHT, padding: 14 });
-  }, [ride, canvasWidth]);
-
-  const onSketchLayout = useCallback((e: LayoutChangeEvent) => {
-    setCanvasWidth(e.nativeEvent.layout.width);
-  }, []);
+  const segments = useMemo(
+    () => (ride ? segmentsOf(ride) : []),
+    [ride],
+  );
 
   if (loaded && !ride) {
     return (
@@ -109,17 +111,25 @@ export default function RideDetailScreen({ navigation, route }: Props) {
   const subtitle = ride ? new Date(ride.started_at).toLocaleTimeString() : 'Loading…';
   const speedLabel = speedUnit(units);
 
-  // Dial scale in the display unit, so the arc numerals, the needle ratio and the unit label
-  // always agree (an imperial dial reads mph end to end). Round up past the fastest reading
-  // so the needle never pins, with a sane floor and step per unit.
-  const toDisplay = (kmh: number) => (units === 'imperial' ? kmh / KM_PER_MILE : kmh);
+  const toDisplay = (kmh: number) =>
+    units === 'imperial' ? kmh / KM_PER_MILE : kmh;
+
   const step = units === 'imperial' ? 10 : 20;
   const floor = units === 'imperial' ? 40 : 60;
   const margin = units === 'imperial' ? 5 : 10;
+
   const maxSpeedDisplay =
     ride && ride.max_speed_ms > 0 ? toDisplay(ride.max_speed_ms * 3.6) : 0;
-  const dialMax = Math.max(floor, Math.ceil((maxSpeedDisplay + margin) / step) * step);
-  const avgDisplay = ride?.avg_speed_ms != null ? toDisplay(ride.avg_speed_ms * 3.6) : 0;
+
+  const dialMax = Math.max(
+    floor,
+    Math.ceil((maxSpeedDisplay + margin) / step) * step,
+  );
+
+  const avgDisplay =
+    ride?.avg_speed_ms != null
+      ? toDisplay(ride.avg_speed_ms * 3.6)
+      : 0;
 
   return (
     <Screen title={title} subtitle={subtitle}>
@@ -127,7 +137,11 @@ export default function RideDetailScreen({ navigation, route }: Props) {
         <>
           <View style={s.statusRow}>
             <Text style={[s.badge, ride.status === 'recording' && s.badgeActive]}>
-              {ride.status === 'recording' ? 'Recording' : ride.status === 'recovered' ? 'Recovered' : 'Finished'}
+              {ride.status === 'recording'
+                ? 'Recording'
+                : ride.status === 'recovered'
+                  ? 'Recovered'
+                  : 'Finished'}
             </Text>
             <Text style={s.vehicle}>{ride.vehicle_name ?? 'No vehicle'}</Text>
           </View>
@@ -152,66 +166,64 @@ export default function RideDetailScreen({ navigation, route }: Props) {
               speedLabel={speedLabel}
             />
             {ride.avg_speed_ms == null && (
-              <Text style={s.note}>Average speed appears once a ride has enough tracked time.</Text>
+              <Text style={s.note}>
+                Average speed appears once a ride has enough tracked time.
+              </Text>
             )}
           </View>
 
-          <View style={s.card} onLayout={onSketchLayout}>
+          <View style={s.card}>
             <Text style={s.cardTitle}>Route</Text>
-            {sketch && canvasWidth > 0 ? (
-              <Svg width={canvasWidth} height={SKETCH_HEIGHT} style={s.sketch}>
-                {sketch.segments.map((seg, i) => (
-                  <Path
-                    key={i}
-                    d={toPath(seg)}
-                    stroke={colors.primary}
-                    strokeWidth={2.5}
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    fill="none"
+
+            {segments.length > 0 ? (
+              <>
+                <Pressable
+                  onPress={() => setMapVisible(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Open interactive ride map"
+                  style={s.mapPreviewButton}
+                >
+                  <RideMapPreview
+                    segments={segments}
+                    containerStyle={s.mapPreview}
                   />
-                ))}
-                {sketch.segments.length > 0 && sketch.segments[0].length > 0 && (
-                  <>
-                    <Circle
-                      cx={sketch.segments[0][0].x}
-                      cy={sketch.segments[0][0].y}
-                      r={5}
-                      fill={colors.success}
-                    />
-                    <Circle
-                      cx={sketch.segments[sketch.segments.length - 1].slice(-1)[0].x}
-                      cy={sketch.segments[sketch.segments.length - 1].slice(-1)[0].y}
-                      r={5}
-                      fill={colors.danger}
-                    />
-                  </>
-                )}
-              </Svg>
+                  <View style={s.mapExpandHint}>
+                    <Text style={s.mapExpandText}>Tap to explore map</Text>
+                  </View>
+                </Pressable>
+
+                <Text style={s.sketchNote}>
+                  {segments.reduce((total, segment) => total + segment.length, 0)} route points · Tap the map to explore
+                </Text>
+              </>
             ) : (
-              <Text style={s.note}>
-                {ride.point_count === 0
-                  ? 'No GPS points were recorded for this ride.'
-                  : 'No usable route was recorded for this ride.'}
-              </Text>
+              <RideMapPreview
+                segments={segments}
+                emptyLabel={
+                  ride.point_count === 0
+                    ? 'No GPS points were recorded for this ride.'
+                    : 'No usable route was recorded for this ride.'
+                }
+                containerStyle={s.emptyMap}
+              />
             )}
-            <Text style={s.sketchNote}>
-              Offline sketch — shape only, no map or scale.
-              {sketch && sketch.usablePoints > 0 ? ` ${sketch.usablePoints} points.` : ''}
-            </Text>
           </View>
 
           {(ride.needs_review === 1 || ride.integrity_issue || ride.interrupted === 1) && (
             <View style={s.card}>
               <Text style={s.cardTitle}>Data quality</Text>
-              {ride.integrity_issue && <Text style={s.warnText}>{ride.integrity_issue}</Text>}
+              {ride.integrity_issue && (
+                <Text style={s.warnText}>{ride.integrity_issue}</Text>
+              )}
               {ride.needs_review === 1 && !ride.integrity_issue && (
                 <Text style={s.warnText}>This ride was flagged for review.</Text>
               )}
               {ride.interrupted === 1 && (
                 <Text style={s.note}>
                   Tracking was interrupted {ride.interruption_count} time(s)
-                  {ride.interruption_s > 0 ? ` (${duration(ride.interruption_s)} total)` : ''}.
+                  {ride.interruption_s > 0
+                    ? ` (${duration(ride.interruption_s)} total)`
+                    : ''}.
                 </Text>
               )}
               <Text style={s.note}>
@@ -220,17 +232,50 @@ export default function RideDetailScreen({ navigation, route }: Props) {
               </Text>
             </View>
           )}
+
+          <Modal
+            visible={mapVisible}
+            animationType="slide"
+            presentationStyle="fullScreen"
+            onRequestClose={() => setMapVisible(false)}
+          >
+            <RNView style={s.mapModal}>
+              <RNView style={s.mapModalHeader}>
+                <RNView style={s.mapModalHeading}>
+                  <Text style={s.mapModalTitle}>Ride route</Text>
+                  <Text style={s.mapModalSubtitle}>
+                    {title} · {subtitle}
+                  </Text>
+                </RNView>
+
+                <Pressable
+                  onPress={() => setMapVisible(false)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close map"
+                  hitSlop={12}
+                  style={s.mapCloseButton}
+                >
+                  <Text style={s.mapCloseText}>×</Text>
+                </Pressable>
+              </RNView>
+
+              <RideMapPreview
+                segments={segments}
+                interactive
+                containerStyle={s.fullMap}
+              />
+
+              <RNView style={s.mapModalFooter}>
+                <Text style={s.mapModalHint}>
+                  Drag to move · Pinch to zoom · Rotate with two fingers
+                </Text>
+              </RNView>
+            </RNView>
+          </Modal>
         </>
       )}
     </Screen>
   );
-}
-
-function toPath(points: SketchedPoint[]): string {
-  if (points.length === 0) return '';
-  const [first, ...rest] = points;
-  const moves = rest.map((p) => `L ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
-  return `M ${first.x.toFixed(1)} ${first.y.toFixed(1)} ${moves}`;
 }
 
 function Metric({ value, label }: { value: string; label: string }) {
@@ -242,8 +287,6 @@ function Metric({ value, label }: { value: string; label: string }) {
   );
 }
 
- // Half-circle dial drawn with SVG. Value and max arrive in the rider's display unit (km/h or
- // mph); the unit label below matches the caller's label, not a hard-coded string.
 function SpeedDial({
   value,
   max,
@@ -310,7 +353,12 @@ function SpeedDial({
 }
 
 const s = StyleSheet.create({
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.lg },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.lg,
+  },
   badge: {
     ...typography.caption,
     color: colors.textMuted,
@@ -320,7 +368,11 @@ const s = StyleSheet.create({
     paddingVertical: spacing.xs,
     overflow: 'hidden',
   },
-  badgeActive: { color: colors.background, backgroundColor: colors.primary, fontWeight: '700' },
+  badgeActive: {
+    color: colors.background,
+    backgroundColor: colors.primary,
+    fontWeight: '700',
+  },
   vehicle: { ...typography.caption },
   grid: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: spacing.lg },
   metric: { width: '33.33%', marginBottom: spacing.lg },
@@ -337,9 +389,78 @@ const s = StyleSheet.create({
   },
   cardTitle: { ...typography.label, marginBottom: spacing.md },
   note: { ...typography.caption, marginTop: spacing.xs, lineHeight: 18 },
-  warnText: { ...typography.caption, color: colors.warningText, marginBottom: spacing.xs, lineHeight: 18 },
-  sketch: { alignSelf: 'center' },
+  warnText: {
+    ...typography.caption,
+    color: colors.warningText,
+    marginBottom: spacing.xs,
+    lineHeight: 18,
+  },
+  mapPreviewButton: {
+    height: 220,
+    borderRadius: radii.md,
+    overflow: 'hidden',
+  },
+  mapPreview: {
+    flex: 1,
+    minHeight: 0,
+  },
+  mapExpandHint: {
+    position: 'absolute',
+    right: spacing.sm,
+    bottom: spacing.sm,
+    backgroundColor: 'rgba(10, 10, 26, 0.78)',
+    borderRadius: radii.pill,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  mapExpandText: {
+    ...typography.caption,
+    color: '#FFFFFF',
+    fontSize: 11,
+  },
   sketchNote: { ...typography.caption, marginTop: spacing.sm },
+  emptyMap: { minHeight: 90 },
+  mapModal: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  mapModalHeader: {
+    minHeight: 76,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.surface,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.border,
+  },
+  mapModalHeading: { flex: 1 },
+  mapModalTitle: { ...typography.heading },
+  mapModalSubtitle: { ...typography.caption, marginTop: 2 },
+  mapCloseButton: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surfaceRaised,
+  },
+  mapCloseText: {
+    color: colors.text,
+    fontSize: 28,
+    lineHeight: 30,
+    fontWeight: '300',
+  },
+  fullMap: { flex: 1 },
+  mapModalFooter: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    backgroundColor: colors.surface,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+  },
+  mapModalHint: { ...typography.caption, textAlign: 'center' },
   dialWrap: { alignItems: 'center' },
   dialCenter: { position: 'absolute', top: 56, alignItems: 'center', width: '100%' },
   dialValue: { ...typography.heading, fontSize: 22 },

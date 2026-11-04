@@ -29,6 +29,8 @@ import { tabBarBottomClearance } from '../../ui/tabBarLayout';
 import type { RootTabParamList } from '../../app/RootNavigator';
 import { usePrefs } from '../../app/prefs';
 import ComponentManagePanel from './ComponentManagePanel';
+import AddPartPanel from './AddPartPanel';
+import { refreshLocalReminders } from '../reminders/refresh';
 import {
   categoryLabel,
   formatKm,
@@ -91,6 +93,7 @@ export default function PartsScreen({ navigation }: Props) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [addPartOpen, setAddPartOpen] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -120,6 +123,7 @@ export default function PartsScreen({ navigation }: Props) {
       setError(errText(e));
     } finally {
       setLoading(false);
+      void refreshLocalReminders().catch(() => undefined);
     }
   }, []);
 
@@ -257,6 +261,26 @@ export default function PartsScreen({ navigation }: Props) {
             />
           </View>
 
+          <TouchableOpacity
+            style={s.addPartButton}
+            onPress={() => setAddPartOpen((open) => !open)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ expanded: addPartOpen }}
+            accessibilityLabel={addPartOpen ? 'Close add part form' : 'Add a custom part'}
+          >
+            <Ionicons name={addPartOpen ? 'close' : 'add'} size={20} color={colors.primaryBright} />
+            <Text style={s.addPartText}>{addPartOpen ? 'Close form' : 'Add Part'}</Text>
+          </TouchableOpacity>
+
+          {addPartOpen && (
+            <AddPartPanel
+              vehicleId={vehicle.id}
+              onCancel={() => setAddPartOpen(false)}
+              onSaved={() => { setAddPartOpen(false); void load(); }}
+            />
+          )}
+
           <View style={s.card}>
             <View style={s.sectionHead}>
               <Text style={s.sectionTitle}>Overview</Text>
@@ -280,7 +304,7 @@ export default function PartsScreen({ navigation }: Props) {
 
             {counts.unknown > 0 && (
               <Text style={s.note}>
-                Unknown means there is not enough recorded history yet — it is not a pass.
+                Unknown means there is not enough recorded history yet it is not a pass.
               </Text>
             )}
           </View>
@@ -566,7 +590,7 @@ function OdometerEditor({
             ? currentKm / KM_PER_MILE
             : currentKm,
         )
-      : '—';
+      : ' ';
 
   return (
     <View style={s.odo}>
@@ -614,8 +638,8 @@ function OdometerEditor({
       {!!ok && <Text style={s.okTxt}>{ok}</Text>}
 
       <Text style={s.note}>
-        This only records the number on your dashboard. It does not change maintenance history by
-        itself — use a component's Replace or Baseline action for that.
+        Updating the odometer recalculates maintenance progress when a component's Replace or
+        Baseline record includes an odometer reading.
       </Text>
     </View>
   );
@@ -686,8 +710,7 @@ function ComponentCard({
       ? intervalSourceNote(evaluation.rule.source)
       : null;
 
-  const allowedActions =
-    getComponentDefinition(item.componentCode)?.allowedActions ?? [];
+  const allowedActions = item.allowedActions ?? getComponentDefinition(item.componentCode)?.allowedActions ?? [];
 
   const pill = TONE_PILL[tone];
   const icon = CATEGORY_ICONS[item.category] ?? 'build-outline';
@@ -961,6 +984,20 @@ const s = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
 
+  addPartButton: {
+    minHeight: 48,
+    marginTop: spacing.md,
+    borderRadius: radii.md,
+    borderColor: colors.primaryBright,
+    borderWidth: StyleSheet.hairlineWidth,
+    backgroundColor: colors.primaryTint,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.xs,
+  },
+  addPartText: { ...typography.label, color: colors.primaryBright },
+
   vehicleHead: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -1170,7 +1207,7 @@ const s = StyleSheet.create({
 
   btnTxt: {
     ...typography.body,
-    color: colors.onPrimary,
+    color: colors.primaryInk,
     fontWeight: '700',
   },
 

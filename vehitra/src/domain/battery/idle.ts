@@ -10,7 +10,7 @@ export type BatteryIdleLevel = 'ok' | 'watch' | 'warn';
 
 export const BATTERY_IDLE_LEVEL_LABELS: Record<BatteryIdleLevel, string> = {
   ok: 'In use recently',
-  watch: 'Idle — worth a check',
+  watch: 'Idle   worth a check',
   warn: 'Idle over a week',
 };
 

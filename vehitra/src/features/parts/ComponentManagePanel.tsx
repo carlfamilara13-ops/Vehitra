@@ -8,9 +8,11 @@ import { deleteOverride, getOverride, upsertOverride } from '../../data/local/ov
 import { insertServiceEvent, listServiceEvents, type ServiceEventRow } from '../../data/local/serviceStore';
 import { listInstalls, replaceInstall, type PartInstallRow } from '../../data/local/installStore';
 import { colors, radii, spacing, typography } from '../../ui/theme';
+import { refreshLocalReminders } from '../reminders/refresh';
 import {
   parseDateInput,
   parseIntervalKm,
+  parseIntervalDays,
   parseOptionalOdometerKm,
   todayInput,
 } from './partsView';
@@ -50,6 +52,7 @@ export default function ComponentManagePanel({
   onSaved,
 }: Props) {
   const [intervalRaw, setIntervalRaw] = useState('');
+  const [intervalDaysRaw, setIntervalDaysRaw] = useState('');
   const [hasOverride, setHasOverride] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,6 +82,7 @@ export default function ComponentManagePanel({
     setOk(null);
     setHasOverride(false);
     setIntervalRaw('');
+    setIntervalDaysRaw('');
     (async () => {
       try {
         const db = await getDb();
@@ -86,6 +90,7 @@ export default function ComponentManagePanel({
         if (!alive) return;
         setHasOverride(!!existing);
         setIntervalRaw(existing?.interval_km != null ? String(existing.interval_km) : '');
+        setIntervalDaysRaw(existing?.interval_days != null ? String(existing.interval_days) : '');
       } catch (e) {
         if (alive) setError(e instanceof Error ? e.message : String(e));
       }
@@ -101,9 +106,20 @@ export default function ComponentManagePanel({
     setError(null);
     setOk(null);
     try {
-      const parsed = parseIntervalKm(intervalRaw);
-      if (!parsed.ok) {
-        setError(parsed.error);
+      const distance = intervalRaw.trim()
+        ? parseIntervalKm(intervalRaw)
+        : { ok: true as const, value: null };
+      const days = parseIntervalDays(intervalDaysRaw);
+      if (!distance.ok) {
+        setError(distance.error);
+        return;
+      }
+      if (!days.ok) {
+        setError(days.error);
+        return;
+      }
+      if (distance.value == null && days.value == null) {
+        setError('Enter a distance interval, a day interval, or both.');
         return;
       }
       setBusy(true);
@@ -112,10 +128,12 @@ export default function ComponentManagePanel({
         id: Crypto.randomUUID(),
         user_vehicle_id: vehicleId,
         component_code: componentCode,
-        interval_km: parsed.value,
+        interval_km: distance.value,
+        interval_days: days.value,
       });
       setHasOverride(true);
       setOk('Custom interval saved.');
+      await refreshLocalReminders().catch(() => undefined);
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -123,7 +141,7 @@ export default function ComponentManagePanel({
       inFlight.current = false;
       setBusy(false);
     }
-  }, [intervalRaw, vehicleId, componentCode, onSaved]);
+  }, [intervalRaw, intervalDaysRaw, vehicleId, componentCode, onSaved]);
 
   const removeInterval = useCallback(async () => {
     if (inFlight.current) return;
@@ -136,7 +154,9 @@ export default function ComponentManagePanel({
       await deleteOverride(db, vehicleId, componentCode);
       setHasOverride(false);
       setIntervalRaw('');
+      setIntervalDaysRaw('');
       setOk('Custom interval removed.');
+      await refreshLocalReminders().catch(() => undefined);
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -200,6 +220,7 @@ export default function ComponentManagePanel({
         });
         setOk('Maintenance logged. The usage interval was not reset.');
       }
+      await refreshLocalReminders().catch(() => undefined);
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -261,6 +282,15 @@ export default function ComponentManagePanel({
           keyboardType="numeric"
           accessibilityLabel={`Custom interval for ${componentName}, in kilometres`}
         />
+        <TextInput
+          style={[s.input, s.flexInput]}
+          value={intervalDaysRaw}
+          onChangeText={setIntervalDaysRaw}
+          placeholder="Time in days"
+          placeholderTextColor={colors.textMuted}
+          keyboardType="numeric"
+          accessibilityLabel={`Custom interval for ${componentName}, in days`}
+        />
         <TouchableOpacity
           style={[s.smallBtn, busy && s.disabled]}
           onPress={() => void saveInterval()}
@@ -284,7 +314,7 @@ export default function ComponentManagePanel({
       </View>
       <Text style={s.hint}>
         {hasOverride
-          ? 'User configured — for this vehicle only, not a manufacturer recommendation.'
+          ? 'User configured for this vehicle only. Day reminders start from the latest replacement or baseline date.'
           : 'No custom interval. A local estimate is used only where one exists.'}
       </Text>
 
@@ -468,7 +498,7 @@ const s = StyleSheet.create({
     paddingVertical: spacing.sm,
     marginLeft: spacing.sm,
   },
-  smallBtnTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
+  smallBtnTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   smallGhost: {
     backgroundColor: colors.surface,
 

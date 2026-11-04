@@ -12,7 +12,7 @@ import type {
 
 // ---------------------------------------------------------------- boundaries (Stage 4A)
 //
-// Evaluation order — the first failing step decides `status` / `reason`:
+// Evaluation order   the first failing step decides `status` / `reason`:
 //   1. applicability   applies_to_types excludes the vehicle type -> 'not_applicable'
 //                      component_overrides.enabled = false        -> 'not_applicable'
 //   2. interval rule   no interval anywhere                      -> 'unknown' / 'no_interval'
@@ -26,20 +26,20 @@ import type {
 //   6. classify        usedKm = current - lastService (>= 0), remainingKm = intervalKm - usedKm
 //
 // Status boundaries, exactly (warnRemainingPct W in 0..100, threshold T = intervalKm * W / 100):
-//   overdue   remainingKm <= 0            — exactly at the interval is already overdue
-//   due_soon  0 < remainingKm <= T        — exactly at the threshold is due soon
+//   overdue   remainingKm <= 0              exactly at the interval is already overdue
+//   due_soon  0 < remainingKm <= T          exactly at the threshold is due soon
 //   good      remainingKm >  T
-//   unknown   any input step above failed — never treated as good or overdue
+//   unknown   any input step above failed   never treated as good or overdue
 // Classification compares kilometres, not percentages, so whole-number inputs hit exact boundaries.
 // W = 0 makes 'due_soon' unreachable (only good or overdue); W = 100 makes every not-yet-overdue
 // part due soon. Both are allowed (the catalog permits 0..100).
 //
 // Units: everything is kilometres. Progress is computed unrounded; formatting is the UI's job.
-// History with an invalid/absent current reading stays 'unknown' — no estimate is substituted.
+// History with an invalid/absent current reading stays 'unknown'   no estimate is substituted.
 //
 // Two entry points share steps 1-2 (applicability, interval rule) and steps 3-6 (classify):
-//   evaluateComponent(input) — usage from an odometer pair (current - lastService). Steps 3-5.
-//   evaluateUsage(input)     — usage from the maintenance ledger: usedKm = Σ applied_km since the
+//   evaluateComponent(input)   usage from an odometer pair (current - lastService). Steps 3-5.
+//   evaluateUsage(input)       usage from the maintenance ledger: usedKm = Σ applied_km since the
 //                              baseline. `usedKm` absent means no baseline is known -> 'unknown' /
 //                              'no_service_history'; a negative/non-finite sum is 'unknown' /
 //                              'invalid_usage'. This is the architecture's maintenance source: it
@@ -183,7 +183,7 @@ function resolveAppliedUsage(
 }
 
 // Pure evaluation of one component on one vehicle. Interval layers come from intervalCandidates;
-// when no layer supplies one, the local estimate for (vehicleType, componentCode) fills in last —
+// when no layer supplies one, the local estimate for (vehicleType, componentCode) fills in last  
 // rule.source === 'estimate' tells callers to label it as an unverified estimate.
 export function evaluateComponent(input: ComponentMaintenanceInput): MaintenanceEvaluation {
   const p = preflight(input);
@@ -195,8 +195,8 @@ export function evaluateComponent(input: ComponentMaintenanceInput): Maintenance
   return classified(p.base, p.rule, p.intervalKm, usage.usedKm);
 }
 
-// Pure evaluation from the maintenance ledger (applied_km since the baseline). Prefer this over
-// evaluateComponent for real maintenance status: it does not depend on odometer readings.
+// Pure evaluation from the maintenance ledger (applied_km since the baseline). Use this when the
+// caller has ledger-derived usage; it does not depend on odometer readings.
 export function evaluateUsage(input: ComponentUsageInput): MaintenanceEvaluation {
   const p = preflight(input);
   if (!p.ok) return p.evaluation;

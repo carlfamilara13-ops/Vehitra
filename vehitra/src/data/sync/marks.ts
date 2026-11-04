@@ -2,7 +2,7 @@ import { serialize } from '../local/serialize';
 import type { Db } from '../local/types';
 
 // Sync bookkeeping writes. These live in the sync module (not the stores) because they only
-// flip sync columns — data changes themselves always go through the stores' validated paths.
+// flip sync columns   data changes themselves always go through the stores' validated paths.
 
 export type SyncTable = 'vehicles' | 'deadlines';
 
@@ -53,7 +53,7 @@ export function markPulledSynced(
 
 // Pull brought a deletion-state change (tombstone from the server, or a restore). Applied as
 // server truth: no validation (the server already enforced its constraints) and no pending
-// round-trip — the row ends synced with the server's timestamp.
+// round-trip   the row ends synced with the server's timestamp.
 export function applyPulledDeletion(
   db: Db,
   table: SyncTable,

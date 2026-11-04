@@ -4,6 +4,7 @@ import { INTER, interWeight } from './neuTheme';
 import { resolveSurface } from './NeuAuto';
 import { useNeu } from './useNeu';
 import { colors } from '../theme';
+import { KeyboardScrollContext } from '../keyboardScroll';
 
 // Drop-in replacements for RN Text / TextInput that render Inter. Custom fonts on Android are one
 // family per weight (fontWeight alone cannot select a bundled weight), so the requested weight is
@@ -20,7 +21,7 @@ function resolve(style: TextProps['style'], n: ReturnType<typeof useNeu>): TextS
     [colors.border, n.c.shadowDark],
     [colors.primary, n.c.accent],
     [colors.primaryPressed, n.c.accent],
-    [colors.onPrimary, n.c.onAccent],
+    [colors.primaryInk, n.c.onAccent],
     [colors.primaryBright, n.c.accentText],
     [colors.danger, n.c.danger],
     [colors.dangerText, n.c.danger],
@@ -37,9 +38,36 @@ export const Text = React.forwardRef<RNText, TextProps>(function NeuText({ style
   return <RNText ref={ref} {...rest} style={resolve(style, n)} />;
 });
 
-export const TextInput = React.forwardRef<RNTextInput, TextInputProps>(function NeuTextInput({ style, ...rest }, ref) {
+export const TextInput = React.forwardRef<RNTextInput, TextInputProps>(function NeuTextInput(
+  { style, onFocus, onBlur, ...rest },
+  ref,
+) {
   // Inputs declared with the legacy surface tokens become inset fields (paired inner shadows).
   const n = useNeu();
+  const reportFocus = React.useContext(KeyboardScrollContext);
+  const innerRef = React.useRef<RNTextInput>(null);
+  // Keep the caller's ref working while also holding our own handle for measurements.
+  const setRef = (node: RNTextInput | null) => {
+    innerRef.current = node;
+    if (typeof ref === 'function') ref(node);
+    else if (ref) ref.current = node;
+  };
   const flat = resolveSurface(style as never, n) as TextInputProps['style'];
-  return <RNTextInput ref={ref} placeholderTextColor={n.c.textDisabled} selectionColor={n.c.accent} {...rest} style={resolve(flat as TextProps['style'], n)} />;
+  return (
+    <RNTextInput
+      ref={setRef}
+      placeholderTextColor={n.c.textDisabled}
+      selectionColor={n.c.accent}
+      {...rest}
+      onFocus={(e) => {
+        reportFocus?.(innerRef.current);
+        onFocus?.(e);
+      }}
+      onBlur={(e) => {
+        reportFocus?.(null);
+        onBlur?.(e);
+      }}
+      style={resolve(flat as TextProps['style'], n)}
+    />
+  );
 });

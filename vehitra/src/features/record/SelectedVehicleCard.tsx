@@ -11,7 +11,6 @@ import { vehicleDisplayName, VEHICLE_TYPE_LABELS } from '../../data/local/vehicl
 import type { RideRow } from '../../data/local/ridesStore';
 import { formatDistanceM } from '../../domain/units';
 
-import PrimaryButton from '../../ui/PrimaryButton';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
 import { odometerDisplay, type ConditionTone, type VehicleCondition, type VehicleStat } from './garageView';
@@ -101,7 +100,7 @@ export default function SelectedVehicleCard({
 
       {/* The odometer is the centrepiece of the card: the figure is centred, the unit sits on
           the baseline beside it, and the label sits centred underneath. The stored reading and
-          the unit conversion are unchanged — only the arrangement is. */}
+          the unit conversion are unchanged   only the arrangement is. */}
       <View style={s.odoBlock}>
         <NeuOdometer value={odo.value} unit={odo.unit} easy={easy} />
         <Text style={s.odoLabel}>Total odometer</Text>
@@ -185,11 +184,20 @@ export default function SelectedVehicleCard({
             disabled={busy}
           />
         ) : (
-          <PrimaryButton
-            label="Start Tracking"
+          <TouchableOpacity
+            style={s.startButton}
+            accentGradient
             onPress={onStartTracking}
+            disabled={busy}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: busy }}
+            accessibilityLabel="Start Tracking"
             accessibilityHint="Starts recording a ride with this vehicle"
-          />
+          >
+            <Ionicons name="play" size={18} color={colors.primaryInk} />
+            <Text style={s.startButtonText}>Start Tracking</Text>
+          </TouchableOpacity>
         )}
       </View>
     </View>
@@ -241,7 +249,7 @@ const s = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   odoLabel: { ...typography.kicker, marginTop: 2, textAlign: 'center' },
-  stats: { flexDirection: 'row', marginTop: spacing.lg, gap: spacing.sm },
+  stats: { flexDirection: 'row', marginTop: spacing.sm, gap: spacing.sm },
    stat: {
     flex: 1,
     alignItems: 'center',
@@ -268,6 +276,18 @@ const s = StyleSheet.create({
     gap: spacing.xs,
   },
   secondaryTxt: { ...typography.label, fontSize: 12, color: colors.text, fontWeight: '600' },
+  startButton: {
+    minHeight: 48,
+    borderRadius: radii.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.primary,
+    paddingHorizontal: spacing.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.sm,
+  },
+  startButtonText: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
   actions: { marginTop: spacing.md },
   stopBtn: {
     backgroundColor: colors.dangerSolid,

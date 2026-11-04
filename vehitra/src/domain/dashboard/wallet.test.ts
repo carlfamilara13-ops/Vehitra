@@ -15,7 +15,7 @@ const row = (kind: string, due_date: string | null, overrides: Partial<WalletDoc
 
 const vehicle: WalletVehicle = { name: 'Honda Click', plate: 'ABC 123' };
 
-describe('buildWalletDocs — slots and order', () => {
+describe('buildWalletDocs   slots and order', () => {
   it('always returns exactly two slots in the required order: licence then registration', () => {
     const docs = buildWalletDocs([], null, NOW);
     assert.equal(docs.length, 2);
@@ -46,7 +46,7 @@ describe('buildWalletDocs — slots and order', () => {
   });
 });
 
-describe('buildWalletDocs — expiry text never invents a date', () => {
+describe('buildWalletDocs   expiry text never invents a date', () => {
   it('renders an in-window due date as "Due in N days"', () => {
     const docs = buildWalletDocs([row('license', '2026-10-25')], null, NOW);
     assert.equal(docs[0].daysUntil, 5);
@@ -79,7 +79,7 @@ describe('buildWalletDocs — expiry text never invents a date', () => {
   });
 });
 
-describe('buildWalletDocs — row selection', () => {
+describe('buildWalletDocs   row selection', () => {
   it('ignores disabled and soft-deleted rows', () => {
     const docs = buildWalletDocs(
       [

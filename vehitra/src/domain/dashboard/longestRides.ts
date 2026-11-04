@@ -1,7 +1,7 @@
 // Longest-rides ranking for the dashboard.
 //
 // A pure sort/select over persisted rides. Distances are the stored `distance_m` values, used
-// as-is — this module ranks rides, it does not recalculate them. The input type is structural
+// as-is   this module ranks rides, it does not recalculate them. The input type is structural
 // so the ranking can be tested without a database, and the original row is carried through so
 // the caller can navigate straight to the ride it already has.
 

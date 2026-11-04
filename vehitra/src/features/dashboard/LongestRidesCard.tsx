@@ -13,7 +13,7 @@ import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
 import RideMapPreview from '../rides/RideMapPreview';
 
-const MAP_PREVIEW_HEIGHT = 64;
+const MAP_PREVIEW_HEIGHT = 200;
 
 type Props = {
   rides: readonly RideRow[];
@@ -39,7 +39,7 @@ function segmentsOf(ride: RideRow): LatLon[][] {
 
 // Uses the saved ride route segments so the preview matches ride detail.
 function duration(s: number | null): string {
-  if (s == null) return '—';
+  if (s == null) return ' ';
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
@@ -173,7 +173,13 @@ const s = StyleSheet.create({
   rowText: { flex: 1 },
   distance: { ...typography.heading },
   meta: { ...typography.caption, marginTop: 2 },
-  sketchBox: { height: MAP_PREVIEW_HEIGHT, marginTop: spacing.sm, justifyContent: 'center' },
+  sketchBox: {
+  height: MAP_PREVIEW_HEIGHT,
+  marginTop: spacing.sm,
+  justifyContent: 'center',
+  borderRadius: radii.md,
+  overflow: 'hidden',
+},
   noRoute: { ...typography.caption, color: colors.textMuted },
   easyDistance: { fontSize: 20 },
 });

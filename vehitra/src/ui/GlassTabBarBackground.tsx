@@ -1,6 +1,6 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { TAB_BAR_RADIUS } from './tabBarLayout';
+import { TAB_BAR_CONFIG } from './tabBarLayout';
 import GlassSurface from './GlassSurface';
 
 // The floating bar's surface, rendered as the navigator's `tabBarBackground`.
@@ -26,7 +26,7 @@ const s = StyleSheet.create({
   // shadow from the composited alpha of the layer tree, i.e. from the clipped pill below.
   shadow: {
     ...fill,
-    borderRadius: TAB_BAR_RADIUS,
+    borderRadius: TAB_BAR_CONFIG.cornerRadius,
     shadowColor: '#000000',
     shadowOpacity: 0.45,
     shadowRadius: 16,
@@ -34,5 +34,5 @@ const s = StyleSheet.create({
     elevation: 8,
   },
   // The shared glass shell, sized to the bar and given the bar's own radius.
-  bar: { ...fill, borderRadius: TAB_BAR_RADIUS },
+  bar: { ...fill, borderRadius: TAB_BAR_CONFIG.cornerRadius },
 });

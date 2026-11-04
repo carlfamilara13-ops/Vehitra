@@ -4,7 +4,7 @@ import { getVehicle } from './vehicleStore';
 import { MaintenanceNotFoundError, MaintenanceValidationError } from './maintenanceErrors';
 
 // Battery idle state (schema v7): one row per vehicle holding the last date the user confirmed
-// the battery was in use. This is a user-entered timestamp only — the app never infers battery
+// the battery was in use. This is a user-entered timestamp only   the app never infers battery
 // use from GPS activity and cannot measure battery condition. Idle time is always derived at
 // read time (domain/battery/idle), never stored as a counter, so a corrected timestamp cannot
 // leave a stale computed value behind.

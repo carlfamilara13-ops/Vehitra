@@ -7,7 +7,7 @@ import type { Migration } from '../migrate';
 // are keyed by the SAME stable slugs the cloud seed uses, so a later sync can map by slug
 // without inventing identifiers. Only the small brand/model index is bundled; the per-model
 // resource pack (catalog_model_components) holds maintenance rule candidates with explicit
-// provenance — every bundled row is draft/estimate data, never a manufacturer specification.
+// provenance   every bundled row is draft/estimate data, never a manufacturer specification.
 // New models arrive either via a remote pack download (one model at a time) or a catalog sync;
 // UI always reads from these tables, so the catalog can grow without code changes.
 //
@@ -109,7 +109,7 @@ export const m009: Migration = {
     INSERT INTO catalog_model_components
       (model_slug, component_code, version, interval_km, warn_remaining_pct, review_status, source_note, provenance, updated_at)
     SELECT m.slug, 'engine_oil', 1, 1500, 25, 'draft',
-           'Project spec default (1,500 km). Unverified — not a manufacturer recommendation.', 'bundled', 0
+           'Project spec default (1,500 km). Unverified   not a manufacturer recommendation.', 'bundled', 0
     FROM catalog_models m WHERE m.vehicle_type = 'motorcycle';
   `,
 };

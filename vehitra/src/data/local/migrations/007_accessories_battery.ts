@@ -7,7 +7,7 @@ import type { Migration } from '../migrate';
 // soft-delete (deleted_at) so removals stay honest history and can later sync as tombstones.
 //
 // battery_state tracks the last time the user confirmed the battery was in use/active. It is a
-// user-entered timestamp only — the app cannot measure battery health — and idle time is always
+// user-entered timestamp only   the app cannot measure battery health   and idle time is always
 // derived from this value against the current clock, never stored as a computed counter.
 export const m007: Migration = {
   version: 7,

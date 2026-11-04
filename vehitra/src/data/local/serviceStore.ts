@@ -3,6 +3,7 @@ import { serialize } from './serialize';
 import type { Db } from './types';
 import { getVehicle } from './vehicleStore';
 import { MaintenanceNotFoundError, MaintenanceValidationError } from './maintenanceErrors';
+import { getCustomPart } from './customPartStore';
 
 // Service / inspection log (schema v5). Insert-only: a correction is a new row with action='void'
 // and voids_event_id pointing at the row it cancels. `performed_at` is the wall-clock time the
@@ -49,10 +50,10 @@ const text = (v: string | null | undefined): string | null => {
 
 const isAction = (v: string): v is ServiceAction => (SERVICE_ACTIONS as readonly string[]).includes(v);
 
-export function validateServiceEventInput(input: ServiceEventInput): string[] {
+export function validateServiceEventInput(input: ServiceEventInput, allowCustom = false): string[] {
   const errors: string[] = [];
   const known = getComponentDefinition(input.component_code);
-  if (!known) errors.push('Unknown component.');
+  if (!known && !allowCustom) errors.push('Unknown component.');
   if (!isAction(input.action)) errors.push('Unknown service action.');
   // The action must be one this component supports (generic service/baseline/void always qualify).
   if (known && isAction(input.action) && !isActionAllowedForComponent(input.action, input.component_code)) {
@@ -93,7 +94,7 @@ export function listServiceEvents(db: Db, userVehicleId: string, componentCode?:
   );
 }
 
-// Latest effective (non-void, not itself voided) event for a component — the usage baseline.
+// Latest effective (non-void, not itself voided) event for a component   the usage baseline.
 export function latestServiceEvent(db: Db, userVehicleId: string, componentCode: string): Promise<ServiceEventRow | null> {
   return db.getFirstAsync<ServiceEventRow>(
     `SELECT * FROM service_events s
@@ -124,7 +125,8 @@ export function insertServiceEvent(db: Db, input: ServiceEventInput, now = Date.
 }
 
 async function insertServiceRow(db: Db, input: ServiceEventInput, now: number): Promise<ServiceEventRow> {
-  const errors = validateServiceEventInput(input);
+  const customPart = await getCustomPart(db, input.user_vehicle_id, input.component_code);
+  const errors = validateServiceEventInput(input, !!customPart);
   if (errors.length) throw new MaintenanceValidationError(errors);
   // A service event cannot be dated in the future: it would be ignored by usage sums until that
   // time, letting a future-dated baseline hide overdue wear. `now` is the write time.

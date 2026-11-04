@@ -17,6 +17,7 @@ export type CatalogPackRow = {
   componentCode: string;
   version: number;
   intervalKm: number | null;
+  intervalDays?: number | null;
   warnRemainingPct: number;
   reviewStatus: CatalogReviewStatus;
   sourceNote: string | null;
@@ -42,6 +43,9 @@ export function validateCatalogPack(rows: readonly CatalogPackRow[]): string[] {
     }
     if (row.intervalKm != null && (!Number.isFinite(row.intervalKm) || row.intervalKm <= 0)) {
       errors.push(`${label}: interval must be greater than zero when set.`);
+    }
+    if (row.intervalDays != null && (!Number.isInteger(row.intervalDays) || row.intervalDays <= 0)) {
+      errors.push(`${label}: day interval must be a positive whole number when set.`);
     }
     if (!Number.isFinite(row.warnRemainingPct) || row.warnRemainingPct < 0 || row.warnRemainingPct > 100) {
       errors.push(`${label}: warn percentage must be between 0 and 100.`);

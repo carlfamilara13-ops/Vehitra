@@ -48,6 +48,7 @@ export interface CatalogModel {
   active: boolean;
   sort_order: number;
   current_version: number;
+  image_storage_path: string | null;
   created_at: string;
   updated_at: string;
 }

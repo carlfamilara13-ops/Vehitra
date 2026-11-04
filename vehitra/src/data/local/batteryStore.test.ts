@@ -37,7 +37,7 @@ describe('battery state store', { skip: hasNodeSqlite() ? false : 'node:sqlite u
     const all = await listBatteryStates(db);
     assert.equal(all.length, 1);
     assert.equal(all[0].last_active_at, T0 + 5 * DAY);
-    // a corrected timestamp immediately changes derived idle level — nothing stale can remain
+    // a corrected timestamp immediately changes derived idle level   nothing stale can remain
     const idle = batteryIdleDays(all[0].last_active_at, T0 + 5 * DAY);
     assert.equal(batteryIdleLevel(idle), 'ok');
   });

@@ -392,7 +392,7 @@ export default function EquipmentScreen({ navigation, route }: Props) {
         </TouchableOpacity>
 
         <Text style={s.fineprint}>
-          Manual check-in only — Vehitra cannot read your battery. Idle days
+          Manual check-in only   Vehitra cannot read your battery. Idle days
           count from this tap.
         </Text>
       </View>
@@ -415,7 +415,7 @@ export default function EquipmentScreen({ navigation, route }: Props) {
 
         {accessories.length === 0 && !form && (
           <Text style={s.muted}>
-            No accessories yet — things like mounts, chargers or helmets you
+            No accessories yet   things like mounts, chargers or helmets you
             want to keep track of.
           </Text>
         )}
@@ -672,7 +672,7 @@ const s = StyleSheet.create({
   },
   btnPrimaryTxt: {
     ...typography.body,
-    color: colors.onPrimary,
+    color: colors.primaryInk,
     fontWeight: '700',
   },
   btnGhost: {

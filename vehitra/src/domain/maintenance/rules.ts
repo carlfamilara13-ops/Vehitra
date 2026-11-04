@@ -4,7 +4,7 @@ import type { IntervalCandidates, IntervalSource, MaintenanceRule, VehicleType }
 // so local evaluation matches the schema when the catalog value has not been supplied yet.
 export const DEFAULT_WARN_REMAINING_PCT = 25;
 
-// Local fallback intervals — CONFIGURABLE ESTIMATES, NOT manufacturer recommendations.
+// Local fallback intervals   CONFIGURABLE ESTIMATES, NOT manufacturer recommendations.
 // Provenance: the only interval number that exists in this project today is the motorcycle
 // engine-oil value from the project spec, seeded as review_status = 'draft' / "Unverified" in
 // supabase/seed.sql. The seed deliberately leaves every other interval NULL ("pending review"),

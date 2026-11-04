@@ -127,7 +127,7 @@ describe('deadline store', { skip: hasNodeSqlite() ? false : 'node:sqlite unavai
     assert.equal(await softDeleteDeadline(db, 'd1', T0 + 4), false);
     assert.equal((await listDeadlines(db)).length, 0); // hidden
     assert.equal((await listAllDeadlines(db)).length, 1); // auditable
-    // editing a removed reminder is refused — callers must create a fresh record
+    // editing a removed reminder is refused   callers must create a fresh record
     await assert.rejects(
       () =>
         upsertDeadline(

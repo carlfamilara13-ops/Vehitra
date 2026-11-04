@@ -68,7 +68,7 @@ describe('estimateIntervalKm: configurable estimates, never universal', () => {
     assert.equal(estimateIntervalKm('bicycle', 'engine_oil'), null);
   });
 
-  it('ships no estimate for chain, tires or brakes — they stay configurable inputs', () => {
+  it('ships no estimate for chain, tires or brakes   they stay configurable inputs', () => {
     for (const code of ['drive_chain', 'front_tire', 'rear_tire', 'front_brake_pads', 'rear_brake_pads']) {
       assert.equal(estimateIntervalKm('motorcycle', code), null, code);
     }

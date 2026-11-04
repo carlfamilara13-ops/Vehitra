@@ -29,7 +29,7 @@ export type IntervalCandidates = {
 };
 
 // good / due soon / overdue are computed from real usage; 'unknown' means the inputs cannot say
-// (reason explains which input is missing or invalid) — unknown is never silently mapped to good
+// (reason explains which input is missing or invalid)   unknown is never silently mapped to good
 // or overdue; 'not_applicable' means the part does not exist for this vehicle (reason explains why).
 export type MaintenanceStatus = 'good' | 'due_soon' | 'overdue' | 'unknown' | 'not_applicable';
 
@@ -47,7 +47,7 @@ export type MaintenanceReason =
 // Distance progress for one component. Only ever built from valid inputs: usedKm >= 0 and
 // intervalKm > 0, so there is no negative or non-finite progress. remainingKm is negative only
 // when the part is genuinely overdue (by that many kilometres); usedPercent can exceed 100 then,
-// which is truthful — clamp it when drawing a bar, and use `status` as the authoritative label.
+// which is truthful   clamp it when drawing a bar, and use `status` as the authoritative label.
 export type DistanceProgress = {
   usedKm: number;
   intervalKm: number;

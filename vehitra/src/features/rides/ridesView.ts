@@ -3,8 +3,8 @@
 // be unit tested with node:test and the screen only draws what these functions return.
 //
 // Nothing here recomputes a ride's stored numbers: rows arrive unchanged from ridesStore and are
-// only selected, ordered and counted. Distance filters and form inputs speak kilometres — the
-// same convention as the odometer editor — while every stored value stays in metres.
+// only selected, ordered and counted. Distance filters and form inputs speak kilometres   the
+// same convention as the odometer editor   while every stored value stays in metres.
 
 import type { RideRow } from '../../data/local/ridesStore';
 import { decodePolyline, type LatLon } from '../../domain/ride/polyline';
@@ -34,7 +34,7 @@ export type RideFilters = {
 
 // How many rows the list materialises per batch, and how many rows are read from SQLite in one
 // go. The cap mirrors the guardrail the Dashboard already uses for its ride totals so both
-// screens count the same set — it is a read limit, not a schema change.
+// screens count the same set   it is a read limit, not a schema change.
 export const RIDES_PAGE_SIZE = 15;
 export const RIDE_QUERY_LIMIT = 1000;
 
@@ -210,7 +210,7 @@ function durationForSort(ride: RideRow): number {
 }
 
 // Deterministic ordering. Every sort falls back to the ride id (descending) so equal keys keep a
-// stable position across pages — pagination can never skip or repeat a row.
+// stable position across pages   pagination can never skip or repeat a row.
 export function sortRides(rides: readonly RideRow[], sort: RideSort): RideRow[] {
   const out = [...rides];
   switch (sort) {
@@ -349,7 +349,7 @@ export function hasMoreRides(current: number, total: number): boolean {
 // ---------------------------------------------------------------- route geometry for previews
 
 // Reads the persisted ride's route: `route_segments` holds the JSON Route built at finalize
-// time (one encoded polyline per segment, split at GPS gaps) — the same shape the Ride Detail
+// time (one encoded polyline per segment, split at GPS gaps)   the same shape the Ride Detail
 // screen reads. Absent or unreadable segments mean "no route" for that row; nothing is invented.
 export function rideRouteSegments(ride: Pick<RideRow, 'route_segments'>): LatLon[][] {
   if (!ride.route_segments) return [];

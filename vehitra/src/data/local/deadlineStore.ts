@@ -102,7 +102,7 @@ export async function listDeadlines(db: Db, opts?: { vehicleId?: string }): Prom
   );
 }
 
-// All rows including disabled and soft-deleted ones — sync and diagnostics need full state.
+// All rows including disabled and soft-deleted ones   sync and diagnostics need full state.
 export async function listAllDeadlines(db: Db): Promise<DeadlineRow[]> {
   return db.getAllAsync<DeadlineRow>('SELECT * FROM deadlines ORDER BY due_date ASC, id ASC');
 }
@@ -134,7 +134,7 @@ export function upsertDeadline(db: Db, input: DeadlineInput, now = Date.now()): 
     const existing = await getDeadline(db, input.id);
     if (existing) {
       // Re-enabling on edit keeps the record; a soft-deleted row stays history, so editing a
-      // deleted reminder creates nothing — callers pass a fresh id for that case.
+      // deleted reminder creates nothing   callers pass a fresh id for that case.
       if (existing.deleted_at != null) throw new MaintenanceValidationError(['That reminder was removed.']);
       await db.runAsync(
         `UPDATE deadlines
@@ -160,7 +160,7 @@ export function upsertDeadline(db: Db, input: DeadlineInput, now = Date.now()): 
   });
 }
 
-// Enable/disable without touching the stored date — used by the "pause reminders" control.
+// Enable/disable without touching the stored date   used by the "pause reminders" control.
 export function setDeadlineEnabled(db: Db, id: string, enabled: boolean, now = Date.now()): Promise<boolean> {
   return serialize(async () => {
     const existing = await db.getFirstAsync<{ id: string }>(

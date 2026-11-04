@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import {
   Bike,
   Bus,
@@ -15,7 +15,7 @@ import {
 import type { AdminMember, ModelView, VehicleTypeCode, Workspace } from '../types';
 import { VEHICLE_TYPES } from '../types';
 import { canWriteCatalog } from '../lib/derive';
-import { adminApi, type CreateModelInput } from '../lib/api';
+import { adminApi, publicModelImageUrl, type CreateModelInput } from '../lib/api';
 import { downloadCsv, formatNumber, modelLabel, yearsLabel } from '../lib/format';
 import {
   Badge,
@@ -200,7 +200,7 @@ export function CatalogPage({
                   </div>
                   <div>
                     <dt>Draft rules</dt>
-                    <dd>{view.draft ? view.draft_rule_count : '—'}</dd>
+                    <dd>{view.draft ? view.draft_rule_count : ' '}</dd>
                   </div>
                 </dl>
 
@@ -297,6 +297,11 @@ function VehicleModal({
   const [active, setActive] = useState(view?.model.active ?? true);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const previewUrl = useMemo(() => imageFile ? URL.createObjectURL(imageFile) : null, [imageFile]);
+  useEffect(() => () => { if (previewUrl) URL.revokeObjectURL(previewUrl); }, [previewUrl]);
 
   const isCreate = mode === 'create';
 
@@ -346,6 +351,9 @@ function VehicleModal({
           sortOrder: numericSort,
         });
       }
+      const modelId = isCreate ? createdId : view?.model.id;
+      if (modelId && imageFile) await adminApi.uploadModelImage(modelId, imageFile);
+      else if (modelId && removeImage) await adminApi.removeModelImage(modelId);
     });
     setBusy(false);
     if (!ok) return;
@@ -447,6 +455,43 @@ function VehicleModal({
         </div>
         <Field label="Sort order" htmlFor="model-sort" hint="Lower numbers appear first; generic models usually use 900.">
           <Input id="model-sort" inputMode="numeric" value={sortOrder} onChange={(event) => setSortOrder(event.target.value)} />
+        </Field>
+        <Field label="Vehicle image" htmlFor="model-image" hint="JPG, PNG or WebP, up to 8 MB. Public catalog image; no account data is used.">
+          <div className="model-image-field">
+            {(previewUrl || (view?.model.image_storage_path && !removeImage)) && (
+              <img src={previewUrl ?? publicModelImageUrl(view!.model.image_storage_path!)} alt="Vehicle model preview" />
+            )}
+            <Input
+              id="model-image"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              onChange={(event) => {
+                const file = event.target.files?.[0] ?? null;
+                setImageError(null);
+                if (file && !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+                  setImageError('Choose a JPG, PNG, or WebP image.');
+                  event.target.value = '';
+                  setImageFile(null);
+                  return;
+                }
+                if (file && file.size > 8 * 1024 * 1024) {
+                  setImageError('Image must be 8 MB or smaller.');
+                  event.target.value = '';
+                  setImageFile(null);
+                  return;
+                }
+                setImageFile(file);
+                setRemoveImage(false);
+              }}
+            />
+            {view?.model.image_storage_path && !removeImage && (
+              <Button type="button" variant="ghost" size="sm" onClick={() => { setImageFile(null); setRemoveImage(true); }}>
+                Remove image
+              </Button>
+            )}
+            {removeImage && <Button type="button" variant="ghost" size="sm" onClick={() => setRemoveImage(false)}>Keep current image</Button>}
+            {imageError && <p className="form-error" role="alert">{imageError}</p>}
+          </div>
         </Field>
         {error && (
           <p className="form-error" role="alert">

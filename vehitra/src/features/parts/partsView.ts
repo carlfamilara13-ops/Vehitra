@@ -49,6 +49,7 @@ export const CATEGORY_LABELS: Record<string, string> = {
   wheels_tires: 'Wheels & tires',
   electrical: 'Electrical',
   transmission: 'Transmission',
+  other: 'Other',
 };
 
 export function categoryLabel(code: string): string {
@@ -67,11 +68,11 @@ export function intervalSourceNote(source: string): string | null {
     case 'estimate':
       return 'Interval is a local estimate, not a manufacturer recommendation.';
     case 'catalog':
-      return 'From this model\'s resource pack — draft data, not a manufacturer recommendation.';
+      return 'From this model\'s resource pack   draft data, not a manufacturer recommendation.';
     case 'usage':
       return 'Interval based on your recorded usage profile.';
     case 'override':
-      return 'User configured — not a manufacturer recommendation.';
+      return 'User configured   not a manufacturer recommendation.';
     default:
       return null;
   }
@@ -82,7 +83,7 @@ export function catalogProvenanceNote(
   catalog: { reviewStatus: string; provenance: string; sourceNote: string | null } | null,
 ): string | null {
   if (!catalog) return null;
-  const review = catalog.reviewStatus === 'reviewed' ? 'Reviewed pack data' : 'Draft pack data — pending review';
+  const review = catalog.reviewStatus === 'reviewed' ? 'Reviewed pack data' : 'Draft pack data   pending review';
   const origin =
     catalog.provenance === 'remote' ? ' (downloaded catalog)' : catalog.provenance === 'admin' ? ' (admin published)' : ' (bundled catalog)';
   return review + origin;
@@ -192,6 +193,15 @@ export function parseIntervalKm(raw: string): ParseResult<number> {
   if (!t) return { ok: false, error: 'Enter an interval in kilometres.' };
   const n = Number(t);
   if (!Number.isFinite(n) || n <= 0) return { ok: false, error: 'Interval must be greater than zero.' };
+  return { ok: true, value: n };
+}
+
+// Optional user-configured time interval. Blank means distance-only; configured values are whole days.
+export function parseIntervalDays(raw: string): ParseResult<number | null> {
+  const t = raw.trim();
+  if (!t) return { ok: true, value: null };
+  const n = Number(t);
+  if (!Number.isInteger(n) || n <= 0) return { ok: false, error: 'Day interval must be a whole number greater than zero.' };
   return { ok: true, value: n };
 }
 

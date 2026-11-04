@@ -67,7 +67,7 @@ export function cancelReminder(db: Db, key: string, now = Date.now()): Promise<v
   });
 }
 
-// Drop a cancelled row entirely — used before re-scheduling the same key afresh.
+// Drop a cancelled row entirely   used before re-scheduling the same key afresh.
 export function deleteReminder(db: Db, key: string): Promise<void> {
   return serialize(async () => {
     await db.runAsync('DELETE FROM reminder_schedule WHERE reminder_key = ?', key);

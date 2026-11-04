@@ -1,14 +1,20 @@
 
 import React from 'react';
-import type { ColorValue } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
 import type { WalletDoc } from '../../domain/dashboard/wallet';
 import type { DriverProfile } from '../../domain/driverProfile/profile';
-import { colors, radii, spacing, typography } from '../../ui/theme';
+import {
+  VEHICLE_DOCUMENT_DEFINITIONS,
+  VEHICLE_DOCUMENT_KINDS,
+  type VehicleDocumentKind,
+} from '../../domain/vehicleDocuments/documents';
+import type { VehicleDocumentRow } from '../../data/local/vehicleDocumentStore';
+import { colors, spacing, typography } from '../../ui/theme';
 import DriverProfileCard from './DriverProfileCard';
+import VehicleDocumentCard from './VehicleDocumentCard';
 
 type Props = {
   docs: readonly WalletDoc[];
@@ -16,32 +22,48 @@ type Props = {
   profile: DriverProfile | null;
   /** A local read failed; the profile card still renders its empty states. */
   profileUnavailable?: boolean;
+  /** True when an active vehicle exists; OR/CR photos need one. */
+  hasVehicle: boolean;
+  /** Display name of the active vehicle, used to label whose documents these are. */
+  vehicleName?: string | null;
+  /** Saved OR/CR rows for the active vehicle only. */
+  documents: readonly VehicleDocumentRow[];
+  documentsLoading?: boolean;
+  /** The document read failed; cards keep their empty states and the wallet says so. */
+  documentsUnavailable?: boolean;
+  documentBusyKind?: VehicleDocumentKind | null;
+  documentError?: string | null;
+  onChooseDocument: (kind: VehicleDocumentKind) => void;
+  onOpenDocument: (kind: VehicleDocumentKind, uri: string) => void;
   onEditProfile: () => void;
-  /** Vehicles may have no plate recorded — the card says so rather than showing a blank. */
+  /** Vehicles may have no plate recorded   the card says so rather than showing a blank. */
   onManage: () => void;
 };
 
-const PHASE_COLOR: Record<WalletDoc['phase'], ColorValue> = {
-  overdue: colors.danger,
-  due_soon: colors.warningText,
-  upcoming: colors.textMuted,
-  none: colors.textMuted,
-};
-
-// Section 4 of the dashboard: the document wallet. Two cards — personal driver profile then
-// vehicle registration. The profile card keeps the existing flip interaction, but its faces are
-// native views of the driver's own data rather than bundled credential artwork.
+// Section 4 of the dashboard: the document wallet. The personal profile keeps its existing flip
+// card, followed by the active vehicle's OR and CR photos.
 export default function DocumentWalletCard({
   docs,
   profile,
   profileUnavailable,
+  hasVehicle,
+  vehicleName,
+  documents,
+  documentsLoading,
+  documentsUnavailable,
+  documentBusyKind,
+  documentError,
+  onChooseDocument,
+  onOpenDocument,
   onEditProfile,
   onManage,
 }: Props) {
+  const license = docs.find((doc) => doc.kind === 'license');
+
   return (
     <View style={s.root}>
       <View style={s.headRow}>
-        <Text style={typography.heading}>Document wallet</Text>
+        <Text style={typography.heading}>Document wallet </Text>
         <TouchableOpacity
           onPress={onManage}
           accessibilityRole="button"
@@ -51,7 +73,7 @@ export default function DocumentWalletCard({
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={s.manage}
         >
-          <Text style={s.manageText}>Manage</Text>
+          <Text style={s.manageText}>Manage </Text>
           <Ionicons
             name="chevron-forward"
             size={14}
@@ -62,44 +84,34 @@ export default function DocumentWalletCard({
         </TouchableOpacity>
       </View>
       <View style={s.cards}>
-        {docs.map((doc) =>
-          doc.kind === 'license' ? (
-            <DriverProfileCard
-              key={doc.kind}
-              doc={doc}
-              profile={profile}
-              profileUnavailable={profileUnavailable}
-              onEditProfile={onEditProfile}
-            />
-          ) : (
-            <RegistrationCard key={doc.kind} doc={doc} />
-          ),
-        )}
-      </View>
-    </View>
-  );
-}
-
-function RegistrationCard({ doc }: { doc: WalletDoc }) {
-  return (
-    <View style={[s.registrationBase, s.registration]}>
-      <View style={s.docHead}>
-        <View style={s.badge}>
-          <Ionicons
-            name="card-outline"
-            size={16}
-            color={colors.primaryBright}
-            accessibilityElementsHidden
-            importantForAccessibility="no-hide-descendants"
+        {license ? (
+          <DriverProfileCard key={license.kind} doc={license} profile={profile} />
+        ) : null}
+        {VEHICLE_DOCUMENT_KINDS.map((kind) => (
+          <VehicleDocumentCard
+            key={kind}
+            kind={kind}
+            document={documents.find((row) => row.kind === kind) ?? null}
+            hasVehicle={hasVehicle}
+            vehicleName={vehicleName}
+            loading={!!documentsLoading}
+            busy={documentBusyKind === kind}
+            blocked={!!documentBusyKind && documentBusyKind !== kind}
+            onChoose={() => onChooseDocument(kind)}
+            onOpen={(uri) => onOpenDocument(kind, uri)}
           />
-        </View>
-        <Text style={s.docTitle}>{doc.title}</Text>
+        ))}
       </View>
-      {doc.subject ? <Text style={s.subject}>{doc.subject}</Text> : null}
-      <Text style={s.plate}>{doc.plate ?? 'No plate recorded'}</Text>
-      <Text style={[s.expiry, { color: PHASE_COLOR[doc.phase] }]}>
-        {doc.expiryText}
-      </Text>
+      {documentsUnavailable ? (
+        <Text style={s.error} accessibilityLiveRegion="polite">
+          Could not load this vehicle’s document photos. Try again from this screen.
+        </Text>
+      ) : null}
+      {documentError ? (
+        <Text style={s.error} accessibilityLiveRegion="polite">
+          {documentError}
+        </Text>
+      ) : null}
     </View>
   );
 }
@@ -115,27 +127,9 @@ const s = StyleSheet.create({
   manage: { flexDirection: 'row', alignItems: 'center' },
   manageText: { ...typography.label, color: colors.primaryBright },
   cards: { gap: spacing.md },
-  registrationBase: {
-    borderRadius: radii.lg,
-    padding: spacing.lg,
+  error: {
+    ...typography.caption,
+    color: colors.danger,
+    marginTop: spacing.md,
   },
-  registration: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  docHead: { flexDirection: 'row', alignItems: 'center' },
-  badge: {
-    width: 32,
-    height: 32,
-    borderRadius: radii.sm,
-    backgroundColor: colors.surfaceRaised,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing.sm,
-  },
-  docTitle: { ...typography.label, flex: 1 },
-  subject: { ...typography.caption, marginTop: spacing.sm },
-  plate: { ...typography.heading, marginTop: spacing.xs, letterSpacing: 1 },
-  expiry: { ...typography.label, marginTop: spacing.sm },
 });

@@ -42,7 +42,7 @@ describe('localDayKey', () => {
   });
 });
 
-describe('buildWeeklyActivity — window', () => {
+describe('buildWeeklyActivity   window', () => {
   it('returns exactly seven local days, oldest first, ending today', () => {
     const w = buildWeeklyActivity([], NOW);
     assert.equal(w.days.length, 7);
@@ -62,7 +62,7 @@ describe('buildWeeklyActivity — window', () => {
   });
 });
 
-describe('buildWeeklyActivity — qualifying rides', () => {
+describe('buildWeeklyActivity   qualifying rides', () => {
   it('counts finished and recovered rides but ignores rides still recording', () => {
     const w = buildWeeklyActivity(
       [
@@ -90,7 +90,7 @@ describe('buildWeeklyActivity — qualifying rides', () => {
   });
 });
 
-describe('buildWeeklyActivity — streak', () => {
+describe('buildWeeklyActivity   streak', () => {
   it('counts consecutive local days back from today', () => {
     const w = buildWeeklyActivity(
       [ride(at(9, 18)), ride(at(9, 19)), ride(at(9, 20))],
@@ -142,7 +142,7 @@ describe('buildWeeklyActivity — streak', () => {
   });
 });
 
-describe('buildWeeklyActivity — totals and empty state', () => {
+describe('buildWeeklyActivity   totals and empty state', () => {
   it('sums stored distance and duration over the seven-day window only', () => {
     const w = buildWeeklyActivity(
       [

@@ -80,7 +80,7 @@ describe('app settings store', { skip: hasNodeSqlite() ? false : 'node:sqlite un
 
   it('keeps units display-only at the type level (stored rows are never converted)', async () => {
     const s = await updateAppSettings(db, { units: 'imperial' }, T0);
-    // The row itself carries no distances to convert — only the label choice.
+    // The row itself carries no distances to convert   only the label choice.
     const cols = (await db.getAllAsync<{ name: string }>('PRAGMA table_info(app_settings)')).map((c) => c.name);
     for (const col of cols) {
       assert.ok(!/km|mile|distance|odometer/.test(col), `app_settings must not store distances (found ${col})`);

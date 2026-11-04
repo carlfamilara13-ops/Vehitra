@@ -15,7 +15,7 @@ export type StatusTone = 'ok' | 'watch' | 'bad' | 'unknown';
 export type StatusStripItem = {
   key: string;
   label: string;
-  /** Short value or state; never blank — an unrecorded value says so. */
+  /** Short value or state; never blank   an unrecorded value says so. */
   detail: string;
   tone: StatusTone;
   icon: keyof typeof Ionicons.glyphMap;
@@ -71,7 +71,7 @@ export default function VehicleStatusStrip({ vehicleName, items, onOpenVehicle }
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           style={s.open}
         >
-          <Text style={s.openText}>Open</Text>
+          <Text style={s.openText}>Open </Text>
           <Ionicons
             name="chevron-forward"
             size={14}

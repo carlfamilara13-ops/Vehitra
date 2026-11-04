@@ -13,7 +13,7 @@ import RideMapPreview from './RideMapPreview';
 const PREVIEW_HEIGHT = 148;
 
 function duration(s: number | null): string {
-  if (s == null) return '—';
+  if (s == null) return ' ';
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
   const sec = Math.round(s % 60);
@@ -21,7 +21,7 @@ function duration(s: number | null): string {
 }
 
 // The schema has no ride title column, so the title falls back to a date-based label. The date
-// and time shown on the card come from the stored `started_at` — nothing is generated.
+// and time shown on the card come from the stored `started_at`   nothing is generated.
 function rideTitle(ride: RideRow): string {
   return `Ride on ${new Date(ride.started_at).toLocaleDateString()}`;
 }

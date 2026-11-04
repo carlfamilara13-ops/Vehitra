@@ -1,0 +1,5 @@
+﻿
+vehitra\src\features\settings\AccountScreen.tsx:10:import { getSupabase, hasSupabaseConfig } from '../../data/remote/client';
+vehitra\src\features\settings\AccountScreen.tsx:21:import { createSupabaseSyncRemote } from '../../data/sync/supabaseRemote';
+
+

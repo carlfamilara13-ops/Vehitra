@@ -1,10 +1,23 @@
 import React from 'react';
-import { Image, ScrollView, StyleSheet, View, type ImageSourcePropType, type ImageStyle, type StyleProp, type ViewStyle } from 'react-native';
+import {
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  View,
+  type ImageSourcePropType,
+  type ImageStyle,
+  type StyleProp,
+  type ViewStyle,
+} from 'react-native';
 import { Text } from './neu/NeuText';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, typography } from './theme';
 import { usePrefs } from '../app/prefs';
 import { useNeu } from './neu/useNeu';
+import { tabBarBottomClearance } from './tabBarLayout';
+import { KeyboardScrollContext, useKeyboardScroll } from './keyboardScroll';
 
 type Props = {
   /** Optional: a screen that draws its own header (the Dashboard wordmark) passes no title. */
@@ -12,6 +25,10 @@ type Props = {
   subtitle?: string;
   right?: React.ReactNode;
   scroll?: boolean;
+  /** Adds enough scrollable space to clear the floating bottom tab bar. */
+  avoidTabBar?: boolean;
+  /** Adjusts the scroll area when the software keyboard is open. */
+  keyboardAware?: boolean;
   children?: React.ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
   // Taps on controls inside the scroll view. Defaults to the React Native default ('never'); a
@@ -29,6 +46,8 @@ export default function Screen({
   subtitle,
   right,
   scroll = true,
+  avoidTabBar = false,
+  keyboardAware = true,
   children,
   contentStyle,
   keyboardShouldPersistTaps,
@@ -38,7 +57,15 @@ export default function Screen({
   // Easy mode enlarges the shared frame text on every screen (the Dashboard adds its own
   // metric sizing on top). Read from prefs here so no screen has to remember to opt in.
   const easy = usePrefs().uiMode === 'easy';
+  const insets = useSafeAreaInsets();
   const n = useNeu();
+  const bottomClearance = avoidTabBar
+    ? tabBarBottomClearance(insets.bottom) + spacing.lg
+    : undefined;
+
+  // Keeps the focused input above the software keyboard on every screen.
+  const keyboardScroll = useKeyboardScroll({ enabled: keyboardAware, margin: spacing.md });
+
   const inner = (
     <>
       {!!(title || right) && (
@@ -65,17 +92,41 @@ export default function Screen({
           importantForAccessibility="no-hide-descendants"
         />
       ) : null}
-      {scroll ? (
-        <ScrollView
-          contentContainerStyle={[s.content, contentStyle]}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+      <KeyboardScrollContext.Provider value={keyboardScroll.onFocusInput}>
+        <KeyboardAvoidingView
+          style={s.flex}
+          behavior={keyboardAware ? (Platform.OS === 'ios' ? 'padding' : 'height') : undefined}
+          enabled={keyboardAware}
         >
-          {inner}
-        </ScrollView>
-      ) : (
-        <View style={[s.content, s.flex, contentStyle]}>{inner}</View>
-      )}
+          {scroll ? (
+            <ScrollView
+              ref={keyboardScroll.scrollRef}
+              contentContainerStyle={[
+                s.content,
+                bottomClearance != null && { paddingBottom: bottomClearance },
+                contentStyle,
+              ]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps={keyboardShouldPersistTaps}
+              onScroll={keyboardScroll.onScroll}
+              scrollEventThrottle={16}
+            >
+              {inner}
+            </ScrollView>
+          ) : (
+            <View
+              style={[
+                s.content,
+                s.flex,
+                bottomClearance != null && { paddingBottom: bottomClearance },
+                contentStyle,
+              ]}
+            >
+              {inner}
+            </View>
+          )}
+        </KeyboardAvoidingView>
+      </KeyboardScrollContext.Provider>
     </SafeAreaView>
   );
 }

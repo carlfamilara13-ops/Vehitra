@@ -1,4 +1,10 @@
-import { planReminders, type MaintenanceReminderInput } from '../../domain/reminders/plan';
+import { planReminders, type MaintenanceReminderInput, type MaintenanceTimeReminderInput } from '../../domain/reminders/plan';
+import { getComponentDefinition } from '../../domain/maintenance/components';
+import { latestInstall } from '../../data/local/installStore';
+import { latestBaselineServiceEvent } from '../../data/local/serviceStore';
+import { listOverrides } from '../../data/local/overrideStore';
+import { getModelPack } from '../../data/local/catalogStore';
+import { packByCode } from '../../domain/catalog/packs';
 import {
   listBatteryStates,
 } from '../../data/local/batteryStore';
@@ -21,7 +27,7 @@ import type { NotificationsAdapter } from './notifications';
 //
 // Diffing by the planner's deterministic key means re-running is idempotent: unchanged plans
 // keep their platform id, changed plans cancel + re-schedule, stale plans are cancelled. The
-// notifications_enabled switch gates the whole step — off means nothing is scheduled, not
+// notifications_enabled switch gates the whole step   off means nothing is scheduled, not
 // "silently scheduled and not shown".
 
 export type SyncResult = {
@@ -68,10 +74,38 @@ export async function gatherReminderInputs(db: Db): Promise<Omit<GatheredInputs,
     }));
 
   const maintenance: MaintenanceReminderInput[] = [];
+  const maintenanceTime: MaintenanceTimeReminderInput[] = [];
   for (const v of vehicles) {
     const result = await evaluateVehicleMaintenance(db, v.id);
     if (!result) continue;
     const vehicleName = vehicleDisplayName(v);
+    const [overrides, packRows] = await Promise.all([
+      listOverrides(db, v.id),
+      v.catalog_model_slug ? getModelPack(db, v.catalog_model_slug) : Promise.resolve([]),
+    ]);
+    const packByComponent = packByCode(packRows);
+    for (const override of overrides) {
+      if (override.enabled !== 1) continue;
+      const intervalDays = override.interval_days ?? packByComponent.get(override.component_code)?.intervalDays ?? null;
+      if (intervalDays == null || intervalDays <= 0) continue;
+      const [service, install] = await Promise.all([
+        latestBaselineServiceEvent(db, v.id, override.component_code),
+        latestInstall(db, v.id, override.component_code),
+      ]);
+      const baselineAt = Math.max(service?.performed_at ?? -Infinity, install?.installed_at ?? -Infinity);
+      const component = getComponentDefinition(override.component_code)
+        ?? result.items.find((item) => item.componentCode === override.component_code);
+      if (Number.isFinite(baselineAt) && component) {
+        maintenanceTime.push({
+          vehicleId: v.id,
+          vehicleName,
+          componentCode: override.component_code,
+          componentName: component.name,
+          baselineAt,
+          intervalDays,
+        });
+      }
+    }
     for (const item of result.items) {
       const status = item.evaluation.status;
       if (status === 'due_soon' || status === 'overdue') {
@@ -86,7 +120,7 @@ export async function gatherReminderInputs(db: Db): Promise<Omit<GatheredInputs,
     }
   }
 
-  return { deadlines, batteries, maintenance };
+  return { deadlines, batteries, maintenance, maintenanceTime };
 }
 
 function cancelLedgerEntry(
@@ -104,6 +138,7 @@ export async function syncReminders(
   db: Db,
   adapter: NotificationsAdapter,
   nowMs = Date.now(),
+  requestPermission = true,
 ): Promise<SyncResult> {
   const settings = await getAppSettings(db);
   const enabled = settings.notifications_enabled === 1;
@@ -135,7 +170,7 @@ export async function syncReminders(
   const plans = planReminders({ ...inputs, nowMs }).filter((plan) => {
     if (plan.kind === 'deadline') return settings.document_reminders_enabled === 1;
     if (plan.kind === 'battery_idle') return settings.battery_reminders_enabled === 1;
-    if (plan.kind === 'maintenance') {
+    if (plan.kind === 'maintenance' || plan.kind === 'maintenance_time') {
       return plan.urgency === 'overdue'
         ? settings.maintenance_overdue_enabled === 1
         : settings.maintenance_upcoming_enabled === 1;
@@ -144,7 +179,7 @@ export async function syncReminders(
   });
   result.plans = plans.length;
 
-  const hasPermission = await adapter.ensurePermissions();
+  const hasPermission = await adapter.ensurePermissions(requestPermission);
   if (!adapter.available || !hasPermission) {
     result.permissionDenied = adapter.available && !hasPermission;
     for (const row of ledger) {
@@ -174,7 +209,7 @@ export async function syncReminders(
     const matches =
       existing != null &&
       existing.status === 'scheduled' &&
-      existing.fire_at === plan.fireAt &&
+      (existing.fire_at === plan.fireAt || (existing.fire_at <= nowMs && plan.fireAt <= nowMs)) &&
       existing.notification_id != null;
 
     if (matches) {
@@ -190,6 +225,7 @@ export async function syncReminders(
       title: plan.title,
       body: plan.body,
       fireAt: plan.fireAt,
+      immediate: plan.fireAt <= nowMs,
     });
     await upsertReminder(db, {
       key: plan.key,
@@ -204,3 +240,6 @@ export async function syncReminders(
 
   return result;
 }
+
+
+

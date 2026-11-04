@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Keyboard, Modal, StyleSheet } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, StyleSheet } from 'react-native';
 import { TouchableOpacity, View } from '../../ui/neu/NeuAuto';
 import { Text, TextInput } from '../../ui/neu/NeuText';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,8 @@ import { distanceUnit, formatDistanceKm } from '../../domain/units';
 import { parseOdometerKm } from '../parts/partsView';
 import { colors, radii, spacing, typography } from '../../ui/theme';
 import { usePrefs } from '../../app/prefs';
+import { refreshLocalReminders } from '../reminders/refresh';
+import { KeyboardScrollContext } from '../../ui/keyboardScroll';
 
 type Props = {
   visible: boolean;
@@ -22,8 +24,8 @@ type Props = {
 
 const errText = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-// Manual odometer entry for the Record tab. This is the same write path Parts uses —
-// parseOdometerKm validates the text and setVehicleOdometer persists it — presented as a
+// Manual odometer entry for the Record tab. This is the same write path Parts uses  
+// parseOdometerKm validates the text and setVehicleOdometer persists it   presented as a
 // bottom sheet so a reading can be captured without leaving the Garage. Nothing else about
 // the vehicle is editable here; the sheet only owns one field, one save and one close.
 export default function OdometerSheet({ visible, vehicle, onSaved, onClose }: Props) {
@@ -55,6 +57,7 @@ export default function OdometerSheet({ visible, vehicle, onSaved, onClose }: Pr
     try {
       const db = await getDb();
       await setVehicleOdometer(db, vehicle.id, parsed.value);
+      await refreshLocalReminders().catch(() => undefined);
       onSaved();
       onClose();
     } catch (e) {
@@ -79,7 +82,11 @@ export default function OdometerSheet({ visible, vehicle, onSaved, onClose }: Pr
       onRequestClose={onClose}
       statusBarTranslucent
     >
-      <View style={s.root}>
+      <KeyboardScrollContext.Provider value={null}>
+        <KeyboardAvoidingView
+          style={s.root}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
         <TouchableOpacity
           style={s.backdrop}
           activeOpacity={1}
@@ -145,7 +152,8 @@ export default function OdometerSheet({ visible, vehicle, onSaved, onClose }: Pr
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+        </KeyboardAvoidingView>
+      </KeyboardScrollContext.Provider>
     </Modal>
   );
 }
@@ -229,5 +237,5 @@ const s = StyleSheet.create({
     paddingHorizontal: spacing.lg,
   },
   saveDisabled: { opacity: 0.45 },
-  saveTxt: { ...typography.body, color: colors.onPrimary, fontWeight: '700' },
+  saveTxt: { ...typography.body, color: colors.primaryInk, fontWeight: '700' },
 });

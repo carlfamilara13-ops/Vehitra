@@ -279,9 +279,9 @@ function GrantAccessModal({
         </Field>
         <Field label="Role" htmlFor="grant-role">
           <Select id="grant-role" value={role} onChange={(event) => setRole(event.target.value as AdminRole)}>
-            <option value="support_admin">Support admin — triage only</option>
-            <option value="catalog_admin">Catalog admin — edit and publish catalog</option>
-            <option value="super_admin">Super admin — full access</option>
+            <option value="support_admin">Support admin   triage only</option>
+            <option value="catalog_admin">Catalog admin   edit and publish catalog</option>
+            <option value="super_admin">Super admin   full access</option>
           </Select>
         </Field>
         <Notice tone="info" title={`${adminCount} existing administrators`}>
@@ -356,9 +356,9 @@ function ManageMemberModal({
             onChange={(event) => setRole(event.target.value as AdminRole)}
             disabled={lastSuper}
           >
-            <option value="support_admin">Support admin — triage only</option>
-            <option value="catalog_admin">Catalog admin — edit and publish catalog</option>
-            <option value="super_admin">Super admin — full access</option>
+            <option value="support_admin">Support admin   triage only</option>
+            <option value="catalog_admin">Catalog admin   edit and publish catalog</option>
+            <option value="super_admin">Super admin   full access</option>
           </Select>
         </Field>
         <Field label="Account status" htmlFor="member-status" hint={lastSuper ? 'The last active super admin must stay active.' : undefined}>

@@ -130,6 +130,7 @@ describe('driver profile display view', () => {
       license_codes: 'A, B',
       conditions: 'Corrective lenses',
       portrait_uri: 'file:///portrait.jpg',
+      back_photo_uri: null,
     });
     assert.equal(view.name, 'Maria Santos');
     assert.equal(view.initials, 'MS');

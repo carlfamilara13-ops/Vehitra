@@ -17,7 +17,7 @@ type Props = {
 };
 
 // Section 2 of the dashboard, shown only while a ride is recording. The values and the action
-// are unchanged from the original card — a recording ride still reports its persisted distance
+// are unchanged from the original card   a recording ride still reports its persisted distance
 // and point count and still opens the recorder. The idle "Ready to ride" state was removed so
 // the weekly activity card leads the dashboard when nothing is in progress.
 export default function ActiveRideCard({ ride, units, onOpenRecorder }: Props) {

@@ -26,11 +26,17 @@ describe('remote catalog row mapping', () => {
       componentCode: 'engine_oil',
       version: 3,
       intervalKm: 1500,
+      intervalDays: null,
       warnRemainingPct: 25,
       reviewStatus: 'draft',
       sourceNote: 'Reviewed against the catalog.',
       provenance: 'remote',
     });
+  });
+
+  it('maps a published time interval for offline reminders', () => {
+    const mapped = remoteRowToPackRow('m', 2, row({ interval_days: 45 }));
+    assert.equal(mapped.intervalDays, 45);
   });
 
   it('maps reviewed rows and numeric decimals', () => {
@@ -51,7 +57,7 @@ describe('remote catalog row mapping', () => {
 
   it('coerces a missing or junk warn percentage to the 25% default', () => {
     assert.equal(remoteRowToPackRow('m', 1, row({ warn_remaining_pct: null })).warnRemainingPct, 25);
-    // Numeric() on a non-numeric string yields NaN — validation downstream rejects the pack,
+    // Numeric() on a non-numeric string yields NaN   validation downstream rejects the pack,
     // which is the safe outcome (the download fails loudly instead of writing junk).
     const nan = remoteRowToPackRow('m', 1, row({ warn_remaining_pct: Number.NaN as never })).warnRemainingPct;
     assert.ok(Number.isNaN(nan));
@@ -76,6 +82,7 @@ const modelRow = (over: Partial<RemoteIndexModelRow> = {}): RemoteIndexModelRow 
   sort_order: 100,
   brand: { slug: 'honda' },
   vehicle_type: { code: 'motorcycle' },
+  image: null,
   ...over,
 });
 
@@ -92,6 +99,7 @@ describe('remote catalog index mapping', () => {
       name: 'Click 125',
       isGeneric: false,
       sortOrder: 25,
+      imageStoragePath: null,
     });
   });
 
@@ -102,6 +110,11 @@ describe('remote catalog index mapping', () => {
     assert.equal(mapped.brandSlug, null);
     assert.equal(mapped.isGeneric, true);
     assert.equal(mapped.vehicleType, 'car');
+  });
+
+  it('keeps the public storage path attached to its exact model', () => {
+    const mapped = remoteModelToIndex(modelRow({ image: { storage_path: 'model-id/image-hash.webp' } }));
+    assert.equal(mapped.imageStoragePath, 'model-id/image-hash.webp');
   });
 
   it('defaults a missing sort order and marks junk as invalid for validation', () => {

@@ -4,6 +4,7 @@ import { buildRoute, singlePolyline } from '../../domain/ride/route';
 import { summarizeRide } from '../../domain/ride/summary';
 import type { DomainEvent, Fix, ProcessConfig, ProcessResult, RideState } from '../../domain/ride/types';
 import { ensureRideMileageRowInTx } from './mileageStore';
+import { getMeta, setMeta } from './metaStore';
 import { serialize } from './serialize';
 import type { Db } from './types';
 
@@ -63,15 +64,7 @@ export class RideAlreadyActiveError extends Error {
 }
 
 // ---------------------------------------------------------------- meta + events
-export async function getMeta(db: Db, key: string): Promise<string | null> {
-  const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM meta WHERE key = ?', key);
-  return row?.value ?? null;
-}
-
-export async function setMeta(db: Db, key: string, value: string | null): Promise<void> {
-  if (value === null) await db.runAsync('DELETE FROM meta WHERE key = ?', key);
-  else await db.runAsync('INSERT OR REPLACE INTO meta (key, value) VALUES (?, ?)', key, value);
-}
+export { getMeta, setMeta } from './metaStore';
 
 // Logging must never break tracking.
 export async function logEvent(db: Db, type: string, detail = '', now = Date.now()): Promise<void> {
@@ -253,7 +246,7 @@ async function finalizeInTx(
   if ((await getMeta(db, 'active_ride')) === rideId) await setMeta(db, 'active_ride', null);
 
   // Applied mileage: one ledger entry per finalized ride, in the SAME transaction as the ride update,
-  // from the persisted distance — never from the odometer or the raw GPS points again. Idempotent by
+  // from the persisted distance   never from the odometer or the raw GPS points again. Idempotent by
   // ride_id, so it is harmless if a caller ever finalizes twice. Rides with no vehicle, or with an
   // unusable distance, are finalized without an entry (see ensureRideMileageRowInTx).
   const ledger = await ensureRideMileageRowInTx(
@@ -358,6 +351,23 @@ export function getRoute(db: Db, rideId: string): Promise<{ lat: number; lon: nu
 
 export function getRide(db: Db, rideId: string): Promise<RideRow | null> {
   return db.getFirstAsync<RideRow>('SELECT * FROM rides WHERE id = ?', rideId);
+}
+
+export function getLatestUsableSpeed(
+  db: Db,
+  rideId: string,
+): Promise<{ speed_ms: number | null; timestamp: number } | null> {
+  return db.getFirstAsync(
+    `SELECT speed AS speed_ms, ts AS timestamp
+     FROM points
+     WHERE ride_id = ?
+       AND accuracy IS NOT NULL
+       AND accuracy <= ?
+     ORDER BY seq DESC
+     LIMIT 1`,
+    rideId,
+    PROCESS.maxAccuracyM,
+  );
 }
 
 // Used when tracking could not start (e.g. permission revoked): removes the empty ride so no ghost ride remains.
